@@ -231,3 +231,206 @@ function show(i, ref) {
 }
 
 init();
+
+/* =========================================
+   ANALOG SCOUT AI — INTERACTIVE EXPERIENCE
+   ========================================= */
+
+// 1. Optional ambient space sound
+(() => {
+  const button = document.getElementById("sound-toggle");
+  const label = document.getElementById("sound-label");
+
+  if (!button || !label) return;
+
+  let audioContext = null;
+  let masterGain = null;
+  let oscillators = [];
+  let soundEnabled = false;
+
+  function startSound() {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+      label.textContent = "SOUND UNAVAILABLE";
+      return;
+    }
+
+    audioContext = new AudioContextClass();
+
+    masterGain = audioContext.createGain();
+    masterGain.gain.setValueAtTime(0, audioContext.currentTime);
+    masterGain.gain.linearRampToValueAtTime(
+      0.025,
+      audioContext.currentTime + 2
+    );
+
+    masterGain.connect(audioContext.destination);
+
+    const frequencies = [55, 82.41, 110];
+
+    frequencies.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = index === 1 ? "sine" : "triangle";
+      oscillator.frequency.value = frequency;
+
+      gain.gain.value = index === 0 ? 0.35 : 0.12;
+
+      oscillator.connect(gain);
+      gain.connect(masterGain);
+
+      oscillator.start();
+      oscillators.push(oscillator);
+    });
+
+    soundEnabled = true;
+    button.setAttribute("aria-pressed", "true");
+    button.setAttribute("aria-label", "Turn space sound off");
+    label.textContent = "SOUND: ON";
+    button.classList.add("sound-active");
+  }
+
+  function stopSound() {
+    if (audioContext && masterGain) {
+      const context = audioContext;
+
+      masterGain.gain.cancelScheduledValues(context.currentTime);
+      masterGain.gain.setTargetAtTime(
+        0,
+        context.currentTime,
+        0.15
+      );
+
+      window.setTimeout(() => {
+        oscillators.forEach(oscillator => {
+          try {
+            oscillator.stop();
+          } catch (error) {}
+        });
+
+        context.close();
+      }, 700);
+    }
+
+    oscillators = [];
+    audioContext = null;
+    masterGain = null;
+    soundEnabled = false;
+
+    button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-label", "Turn space sound on");
+    label.textContent = "SOUND: OFF";
+    button.classList.remove("sound-active");
+  }
+
+  button.addEventListener("click", async () => {
+    if (soundEnabled) {
+      stopSound();
+      return;
+    }
+
+    startSound();
+
+    if (audioContext && audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+  });
+})();
+
+
+// 2. Mouse parallax effect
+(() => {
+  const visual = document.querySelector(".hero-visual");
+
+  if (!visual) return;
+
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  const touchDevice = window.matchMedia(
+    "(pointer: coarse)"
+  ).matches;
+
+  if (reducedMotion || touchDevice) return;
+
+  window.addEventListener("pointermove", event => {
+    const x = (event.clientX / window.innerWidth - 0.5) * 2;
+    const y = (event.clientY / window.innerHeight - 0.5) * 2;
+
+    visual.style.setProperty("--mouse-x", `${x * 9}px`);
+    visual.style.setProperty("--mouse-y", `${y * 9}px`);
+    visual.style.transform =
+      `translate3d(${x * 5}px, ${y * 5}px, 0)`;
+  });
+
+  document.addEventListener("mouseleave", () => {
+    visual.style.transform = "";
+    visual.style.setProperty("--mouse-x", "0px");
+    visual.style.setProperty("--mouse-y", "0px");
+  });
+})();
+
+
+// 3. Custom futuristic cursor
+(() => {
+  const finePointer = window.matchMedia(
+    "(hover: hover) and (pointer: fine)"
+  ).matches;
+
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (!finePointer || reducedMotion) return;
+
+  const dot = document.createElement("div");
+  const ring = document.createElement("div");
+
+  dot.className = "custom-cursor";
+  ring.className = "custom-cursor-ring";
+
+  dot.setAttribute("aria-hidden", "true");
+  ring.setAttribute("aria-hidden", "true");
+
+  document.body.append(dot, ring);
+
+  window.addEventListener("pointermove", event => {
+    const x = event.clientX;
+    const y = event.clientY;
+
+    dot.style.transform =
+      `translate3d(${x - 3.5}px, ${y - 3.5}px, 0)`;
+
+    ring.style.transform =
+      `translate3d(${x - 17}px, ${y - 17}px, 0)`;
+
+    dot.classList.add("is-visible");
+    ring.classList.add("is-visible");
+  });
+
+  document.addEventListener("mouseleave", () => {
+    dot.classList.remove("is-visible");
+    ring.classList.remove("is-visible");
+  });
+
+  document.addEventListener("mouseenter", () => {
+    dot.classList.add("is-visible");
+    ring.classList.add("is-visible");
+  });
+
+  document.addEventListener("pointerover", event => {
+    if (event.target.closest("a, button, input, select, label")) {
+      ring.style.width = "46px";
+      ring.style.height = "46px";
+      ring.style.borderColor = "rgba(150, 115, 255, 0.95)";
+    } else {
+      ring.style.width = "34px";
+      ring.style.height = "34px";
+      ring.style.borderColor = "rgba(114, 239, 255, 0.75)";
+    }
+  });
+})();
