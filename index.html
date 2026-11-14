@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070b18">
-  <meta name="description" content="Explore planetary terrain and discover Earth analogs for Moon and Mars locations.">
-  <title>Analog Scout AI | Planetary Exploration System</title>
+  <meta name="description" content="A team of curious physics minds exploring planetary terrain and discovering Earth's closest analogs to the Moon and Mars.">
+  <title>Analog Scout AI | Beyond Earth</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -21,6 +21,7 @@
 <!-- Navigation -->
 <header class="site-header">
   <div class="wrap nav-inner">
+
     <a class="brand" href="#" aria-label="Analog Scout AI home">
       <span class="brand-symbol">◈</span>
       <span>ANALOG SCOUT <b>AI</b></span>
@@ -33,7 +34,21 @@
       <a href="#methodology">Methodology</a>
     </nav>
 
-    <a class="nav-action" href="#explore">Launch Mission ↗</a>
+    <div class="nav-controls">
+      <button
+        class="sound-toggle"
+        id="sound-toggle"
+        type="button"
+        aria-pressed="false"
+        aria-label="Turn space sound on"
+      >
+        <span class="sound-icon">♫</span>
+        <span id="sound-label">SOUND: OFF</span>
+      </button>
+
+      <a class="nav-action" href="#explore">Launch Mission ↗</a>
+    </div>
+
   </div>
 </header>
 
@@ -42,9 +57,10 @@
   <div class="hero-grid wrap">
 
     <div class="hero-content">
+
       <div class="eyebrow">
         <span class="status-dot"></span>
-        PLANETARY ANALOG DISCOVERY SYSTEM
+        A PHYSICS CLUB EXPLORATION PROJECT
       </div>
 
       <h1>
@@ -58,10 +74,16 @@
         Discover Earth's closest geological twins to the Moon and Mars.
       </p>
 
+      <p class="team-motto">
+        A bunch of curious minds. One mission.
+        Two worlds. Endless discoveries.
+      </p>
+
       <div class="hero-actions">
         <a class="primary-action" href="#explore">
           Start Exploring <span>↗</span>
         </a>
+
         <a class="secondary-action" href="#planet-map">
           Discover the Map
         </a>
@@ -71,11 +93,13 @@
         <span>01 / PLANETARY RESEARCH</span>
         <span>MOON · MARS · EARTH</span>
       </div>
+
     </div>
 
     <div class="hero-visual" aria-label="Planetary terrain visualization">
       <div class="orbit orbit-one"></div>
       <div class="orbit orbit-two"></div>
+
       <div class="planet planet-main"></div>
       <div class="planet planet-small"></div>
 
@@ -96,7 +120,7 @@
 
   <div class="hero-bottom wrap">
     <span>ANALOG SCOUT AI / 2026</span>
-    <span>INTELLIGENT TERRAIN COMPARISON</span>
+    <span>BUILT BY CURIOUS MINDS</span>
     <span>SCROLL TO EXPLORE ↓</span>
   </div>
 </section>
@@ -118,6 +142,7 @@
     <div class="grid">
 
       <section class="card mission-card" aria-labelledby="t1">
+
         <div class="card-topline">
           <span>REFERENCE CONFIGURATION</span>
           <span class="live-indicator">● SYSTEM READY</span>
@@ -126,11 +151,13 @@
         <h2 id="t1">Space destination</h2>
 
         <div class="seg" role="radiogroup" aria-label="Planet">
+
           <input type="radio" name="pl" id="pm" value="mars" checked>
           <label for="pm">♂ &nbsp; MARS</label>
 
           <input type="radio" name="pl" id="pn" value="moon">
           <label for="pn">☾ &nbsp; MOON</label>
+
         </div>
 
         <label for="site">REFERENCE LOCATION</label>
@@ -151,11 +178,16 @@
         <p class="card-footnote">
           Comparison engine · Weighted terrain analysis
         </p>
+
       </section>
 
       <!-- Results -->
-      <section class="card results-card" id="results-section"
-        aria-labelledby="t2" aria-live="polite">
+      <section
+        class="card results-card"
+        id="results-section"
+        aria-labelledby="t2"
+        aria-live="polite"
+      >
 
         <div class="card-topline">
           <span>02 / ANALYSIS OUTPUT</span>
@@ -176,6 +208,7 @@
         <div id="list" role="listbox" aria-label="Results"></div>
 
         <div class="detail" id="detail"></div>
+
       </section>
 
     </div>
@@ -183,6 +216,7 @@
 
   <!-- Interactive map section -->
   <section class="section map-section" id="planet-map">
+
     <div class="wrap">
 
       <div class="section-heading">
@@ -194,12 +228,14 @@
             relationship between extraterrestrial sites and Earth analogs.
           </p>
         </div>
+
         <div class="section-index">02</div>
       </div>
 
       <div class="map-panel">
 
         <div class="map-toolbar">
+
           <div>
             <span class="toolbar-label">INTERACTIVE MAP</span>
             <h3>Planetary surface explorer</h3>
@@ -210,18 +246,24 @@
             <span><i class="legend-moon"></i> Moon</span>
             <span><i class="legend-earth"></i> Earth</span>
           </div>
+
         </div>
 
         <div class="map-viewport" id="planet-map-view">
+
           <div class="map-placeholder">
             <div class="map-orbit"></div>
             <div class="map-placeholder-symbol">◎</div>
+
             <h3>PLANETARY MAP INITIALIZATION</h3>
+
             <p>
               Interactive 3D terrain visualization will appear here.
             </p>
+
             <span>MAP MODULE / COMING ONLINE</span>
           </div>
+
         </div>
 
         <div class="map-footer">
@@ -230,6 +272,7 @@
         </div>
 
       </div>
+
     </div>
   </section>
 
@@ -242,16 +285,19 @@
         <h2>How the <span>system works.</span></h2>
         <p>A transparent approach to planetary terrain comparison.</p>
       </div>
+
       <div class="section-index">03</div>
     </div>
 
     <section class="card method">
+
       <div class="method-intro">
         <span class="section-kicker">SIMILARITY ENGINE</span>
         <h3>From planetary data to Earth analogs.</h3>
       </div>
 
       <ol>
+
         <li>
           <b>Feature standardization</b>
           <p>Numeric features are standardized so none dominates the others.</p>
@@ -282,12 +328,14 @@
             It is a similarity index, not a statistical probability.
           </p>
         </li>
+
       </ol>
 
       <p class="note">
         Terrain similarity does not mean a site is suitable for a landing
         simulation. Atmosphere, temperature and radiation are not modeled.
       </p>
+
     </section>
   </section>
 
@@ -296,6 +344,7 @@
 <!-- Footer -->
 <footer>
   <div class="wrap footer-inner">
+
     <a class="brand" href="#">
       <span class="brand-symbol">◈</span>
       <span>ANALOG SCOUT <b>AI</b></span>
@@ -303,6 +352,7 @@
 
     <span>EXPLORING WORLDS THROUGH TERRAIN.</span>
     <span>HACKATHON PROTOTYPE · ILLUSTRATIVE DATA</span>
+
   </div>
 </footer>
 
