@@ -178,3 +178,138 @@ button:hover,
     display: none;
   }
 }
+
+
+/* =========================================
+   ANALOG SCOUT AI — FINAL UI DETAILS
+   ========================================= */
+
+/* Navigation controls */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+/* Space sound button */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border: 1px solid rgba(90, 220, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(40, 120, 170, 0.10);
+  color: #b9edff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sound-toggle:hover,
+.sound-toggle.sound-active {
+  border-color: #55e7ff;
+  color: #fff;
+  background: rgba(40, 190, 230, 0.16);
+  box-shadow: 0 0 20px rgba(40, 190, 255, 0.18);
+}
+
+.sound-icon {
+  font-size: 16px;
+  color: #67eaff;
+}
+
+.sound-active .sound-icon {
+  animation: soundPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes soundPulse {
+  0%, 100% {
+    text-shadow: 0 0 3px #55e7ff;
+    transform: scale(1);
+  }
+  50% {
+    text-shadow: 0 0 14px #55e7ff;
+    transform: scale(1.18);
+  }
+}
+
+/* Team motto */
+.team-motto {
+  max-width: 440px;
+  margin: 18px 0 24px;
+  padding-left: 13px;
+  border-left: 2px solid #8a72ff;
+  color: #a8c9e9;
+  font-size: 13px;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  font-style: italic;
+}
+
+/* Stronger hero atmosphere */
+.hero-content {
+  position: relative;
+}
+
+.hero-content .eyebrow {
+  transition: letter-spacing 0.3s ease;
+}
+
+.hero-content .eyebrow:hover {
+  letter-spacing: 2px;
+}
+
+.hero-visual {
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+
+/* Space-inspired selection */
+::selection {
+  color: #fff;
+  background: rgba(90, 110, 255, 0.55);
+}
+
+/* Smooth navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Responsive navigation */
+@media (max-width: 900px) {
+  .nav-controls {
+    gap: 8px;
+  }
+
+  .sound-toggle {
+    padding: 9px 10px;
+  }
+}
+
+@media (max-width: 650px) {
+  .nav-controls {
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .sound-toggle {
+    font-size: 9px;
+  }
+
+  .team-motto {
+    font-size: 12px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .sound-active .sound-icon {
+    animation: none;
+  }
+}
