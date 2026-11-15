@@ -27,8 +27,8 @@ function mapDatabaseSite(row) {
     id: row.site_id,
     site_id: row.site_id,
     name: row.site_name,
-country: row.country,
-planet: String(row.planet || "").toLowerCase(),
+    country: row.country,
+    planet: String(row.planet || "").toLowerCase(),
     target_site_id: row.target_site_id,
 
     slope: numericValue(row.slope_deg),
@@ -52,6 +52,7 @@ planet: String(row.planet || "").toLowerCase(),
     source_notes: row.source_notes
   };
 }
+
 // Send database and analysis data to the planetary map.
 function updatePlanetaryMap(reference = null) {
   if (typeof window.updateAnalogGlobe === "function") {
@@ -63,6 +64,7 @@ function updatePlanetaryMap(reference = null) {
     });
   }
 }
+
 async function loadDatabase() {
   $("ref").textContent = "Loading scientific dataset...";
   $("list").innerHTML = "";
@@ -127,16 +129,15 @@ function fillSites() {
     `<option value="${site.id}">${site.name}</option>`
   ).join("");
 
-  
-if (sites.length === 0) {
-  $("ref").textContent = `No ${planet} reference sites found.`;
-  $("list").innerHTML = "";
-  $("detail").innerHTML = "";
-  results = [];
-  clearCharts();
-  updatePlanetaryMap(null);
-  return;
-}
+  if (sites.length === 0) {
+    $("ref").textContent = `No ${planet} reference sites found.`;
+    $("list").innerHTML = "";
+    $("detail").innerHTML = "";
+    results = [];
+    clearCharts();
+    updatePlanetaryMap(null);
+    return;
+  }
 
   run();
 }
@@ -408,19 +409,17 @@ function run() {
     site => site.target_site_id === reference.site_id
   );
 
-  
-if (candidates.length === 0) {
-  $("ref").textContent =
-    `No Earth analogs are linked to ${reference.name}.`;
+  if (candidates.length === 0) {
+    $("ref").textContent =
+      `No Earth analogs are linked to ${reference.name}.`;
 
-  $("list").innerHTML = "";
-  $("detail").innerHTML = "";
-  results = [];
-  clearCharts();
-  updatePlanetaryMap(reference);
-  return;
-}
-
+    $("list").innerHTML = "";
+    $("detail").innerHTML = "";
+    results = [];
+    clearCharts();
+    updatePlanetaryMap(reference);
+    return;
+  }
 
   // Run the scientific similarity engine on the complete 48-site dataset.
   results = Engine.rank(reference, candidates, allSites);
@@ -472,6 +471,83 @@ if (candidates.length === 0) {
 }
 
 
+// Generate research directions using documented site information
+// and the available numerical terrain features.
+function generateScientificApplications(site, result) {
+  const applications = [];
+
+  const missionUse = site.mission_use ||
+    "No specific mission application is documented in the dataset.";
+
+  // 1. Research focus: documented information from the dataset.
+  applications.push({
+    title: "Research Focus",
+    description: missionUse,
+    source: "Documented dataset information"
+  });
+
+  // 2. Proposed experiment: slope and roughness.
+  const hasSlope = site.slope !== null;
+  const hasRoughness = site.roughness !== null;
+
+  if (hasSlope || hasRoughness) {
+    let terrainFeatures = [];
+
+    if (hasSlope) terrainFeatures.push("slope");
+    if (hasRoughness) terrainFeatures.push("surface roughness");
+
+    applications.push({
+      title: "Terrain and Mobility Testing",
+      description:
+        `Proposed experiment: investigate rover mobility and surface interaction ` +
+        `using the available ${terrainFeatures.join(" and ")} measurements. ` +
+        `Compare the results with the planetary reference and consider the ` +
+        `remaining terrain differences.`,
+      source: "Proposed research direction"
+    });
+  }
+
+  // 3. Proposed experiment: thermal behavior.
+  if (site.thermal !== null) {
+    applications.push({
+      title: "Thermal Surface Investigation",
+      description:
+        "Proposed experiment: study how the site's thermal properties " +
+        "may influence surface heating and cooling. Compare its thermal " +
+        "inertia with the planetary reference before drawing conclusions.",
+      source: "Proposed research direction"
+    });
+  }
+
+  // 4. Geological and regolith investigation.
+  if (site.geology || site.regolith) {
+    const geologicalDetails = [
+      site.geology,
+      site.regolith
+    ].filter(Boolean).join(" ");
+
+    applications.push({
+      title: "Geological and Regolith Investigation",
+      description:
+        "Proposed experiment: investigate the documented geological " +
+        "materials and surface characteristics to identify relevant " +
+        "mineralogical or regolith processes. " +
+        `Available site information: ${geologicalDetails}`,
+      source: "Dataset information + proposed research"
+    });
+  }
+
+  // 5. Environmental limitations.
+  const limitations = site.environment_limits ||
+    "Environmental limitations are not fully documented in the available dataset.";
+
+  return {
+    applications,
+    limitations
+  };
+}
+
+
 function show(index, reference) {
   document.querySelectorAll(".row").forEach(element => {
     element.setAttribute(
@@ -487,7 +563,7 @@ function show(index, reference) {
 
   const site = result.site;
 
-  // Feature comparison table
+  // Feature comparison table.
   const rows = Engine.FEATURES.map(feature => {
     const contribution = result.sq[feature.k] || 0;
 
@@ -505,7 +581,7 @@ function show(index, reference) {
     `;
   }).join("");
 
-  // Original source annotations
+  // Original source annotations.
   const notes = [
     site.slope_raw_note,
     site.roughness_raw_note,
@@ -513,24 +589,30 @@ function show(index, reference) {
     site.source_notes
   ].filter(Boolean);
 
-  // Coordinates
-    const coordinates =
+  // Coordinates.
+  const coordinates =
     Number.isFinite(site.latitude) &&
     Number.isFinite(site.longitude)
       ? `${site.latitude.toFixed(5)}°, ${site.longitude.toFixed(5)}°`
       : "Coordinates unavailable";
 
-  // Scientific information from the original dataset
+  // Scientific information from the original dataset.
   const geology = site.geology || "Not specified";
   const regolith = site.regolith || "Not specified";
   const missionUse = site.mission_use || "Not specified";
   const limitations = site.environment_limits || "Not specified";
   const source = site.data_source || "Not specified";
 
-  // Scientific assessment based on documented information
-  const assessment = site.mission_use
-    ? site.mission_use
-    : "The available dataset does not specify a mission application for this site.";
+  // Generate research directions.
+  const scientificPlan = generateScientificApplications(site, result);
+
+  const applicationCards = scientificPlan.applications.map(item => `
+    <div class="application-card">
+      <h5>${item.title}</h5>
+      <p class="why">${item.description}</p>
+      <span class="note">${item.source}</span>
+    </div>
+  `).join("");
 
   $("detail").innerHTML = `
     <h3>${site.name}</h3>
@@ -597,8 +679,20 @@ function show(index, reference) {
     <h4>Scientific Interpretation</h4>
     <p class="why">${Engine.explain(result)}</p>
 
-    <h4>Potential Scientific Application</h4>
-    <p class="why">${assessment}</p>
+    <h4>Scientific Research Opportunities</h4>
+
+    <p class="note">
+      Documented information is distinguished from proposed experiments.
+      These research directions are suggestions, not reports of experiments
+      already performed.
+    </p>
+
+    <div class="scientific-applications">
+      ${applicationCards}
+    </div>
+
+    <h4>Environmental Constraints</h4>
+    <p class="why">${scientificPlan.limitations}</p>
 
     ${
       notes.length
