@@ -104,10 +104,8 @@ USER QUESTION:
                 "Content-Type": "application/json"
             },
             json={
-                "model": os.getenv(
-                    "GROQ_MODEL",
-                    "llama-3.3-70b-versatile"
-                ),
+                "model": "openai/gpt-oss-20b",
+                
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
