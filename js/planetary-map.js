@@ -1,35 +1,58 @@
 
-// ANALOG SCOUT AI — Interactive 3D Planetary Map
-// Uses Globe.gl to display Mars, Moon and Earth locations.
+// ANALOG SCOUT AI — NASA Planetary Globe
+// NASA WMTS imagery + CesiumJS 3D globe
 
 (() => {
   const state = {
-    globe: null,
+    viewer: null,
     mode: "mars",
     data: {
       allSites: [],
       references: {},
       results: [],
       reference: null
+    }
+  };
+
+  const PLANETS = {
+    earth: {
+      radius: 6378137,
+      polarRadius: 6356752.314245,
+      name: "EARTH"
     },
-    selectedSite: null
+    mars: {
+      radius: 3396190,
+      polarRadius: 3376200,
+      name: "MARS",
+      layer: "Mars_MGS_MOLA_ClrShade_merge_global_463m",
+      url: "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
+    },
+    moon: {
+      radius: 1737400,
+      polarRadius: 1737400,
+      name: "MOON",
+      layer: "LRO_WAC_Mosaic_Global_303ppd_v02",
+      url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
+    }
   };
 
-  const textures = {
-    earth: "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-    mars: "https://unpkg.com/three-globe/example/img/mars.jpg",
-    moon: "https://unpkg.com/three-globe/example/img/moon.jpg"
-  };
+  const $ = id => document.getElementById(id);
 
-  function getElement(id) {
-    return document.getElementById(id);
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[character]);
   }
 
   function initializeMap() {
-    const container = getElement("planet-map-view");
+    const container = $("planet-map-view");
 
-    if (!container || typeof Globe !== "function") {
-      console.warn("Planetary map container or Globe.gl is unavailable.");
+    if (!container || !window.Cesium) {
+      console.error("CesiumJS or map container is unavailable.");
       return;
     }
 
@@ -47,7 +70,7 @@
           <aside class="analog-map-info" id="analog-map-info">
             <span class="analog-map-label">LOCATION INTELLIGENCE</span>
             <h3>Select a location</h3>
-            <p>Click a marker on the planetary globe to explore its scientific information.</p>
+            <p>Click a marker to explore its scientific information.</p>
           </aside>
         </div>
 
@@ -67,55 +90,105 @@
           tab.classList.toggle("active", tab === button);
         });
 
-        renderGlobe();
+        createPlanetViewer();
       });
     });
 
-    state.globe = Globe()(getElement("analog-globe"))
-      .backgroundColor("rgba(0,0,0,0)")
-      .showAtmosphere(true)
-      .atmosphereColor("#36cfff")
-      .atmosphereAltitude(0.16)
-      .pointLat("latitude")
-      .pointLng("longitude")
-      .pointAltitude(point => point.isTopAnalog ? 0.035 : 0.018)
-      .pointRadius(point => point.isTopAnalog ? 0.42 : 0.28)
-      .pointColor(point => {
-        if (point.isReference) return "#c084fc";
-        if (point.isTopAnalog) return "#39f5ff";
-        return "#8295b5";
-      })
-      .pointLabel(point => `
-        <div style="padding:8px;color:#fff;background:#10182b;border:1px solid #39f5ff;border-radius:8px;">
-          <strong>${escapeHTML(point.name)}</strong><br>
-          <small>${escapeHTML(point.planet.toUpperCase())}</small>
-        </div>
-      `)
-      .onPointClick(point => showSiteInfo(point));
-
-    renderGlobe();
-
-    window.addEventListener("resize", resizeGlobe);
+    createPlanetViewer();
   }
 
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[character]);
-  }
+  function createPlanetViewer() {
+    if (!window.Cesium) return;
 
-  function getSitesForMode() {
-    const sites = state.data.allSites;
-
-    if (state.mode === "earth") {
-      return sites.filter(site => site.planet === "earth");
+    if (state.viewer && !state.viewer.isDestroyed()) {
+      state.viewer.destroy();
     }
 
-    return sites.filter(site => site.planet === state.mode);
+    const planet = PLANETS[state.mode];
+
+    const ellipsoid = new Cesium.Ellipsoid(
+      planet.radius,
+      planet.radius,
+      planet.polarRadius
+    );
+
+    const viewer = new Cesium.Viewer("analog-globe", {
+      globe: new Cesium.Globe(ellipsoid),
+      baseLayer: false,
+      baseLayerPicker: false,
+      animation: false,
+      timeline: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      skyBox: false,
+      skyAtmosphere: false
+    });
+
+    state.viewer = viewer;
+
+    viewer.scene.backgroundColor =
+      Cesium.Color.fromCssColorString("#050816");
+
+    viewer.scene.globe.baseColor =
+      Cesium.Color.fromCssColorString("#10182b");
+
+    viewer.scene.globe.enableLighting = true;
+    viewer.scene.globe.showGroundAtmosphere = false;
+
+    if (state.mode !== "earth") {
+      loadNASAImagery(viewer, planet);
+    }
+
+    renderMarkers(viewer);
+
+    viewer.selectedEntityChanged.addEventListener(entity => {
+      if (entity && entity.siteData) {
+        showSiteInfo(entity.siteData);
+      }
+    });
+
+    viewer.camera.setView({
+      destination: new Cesium.Cartesian3(
+        0,
+        -planet.radius * 3,
+        0
+      ),
+      orientation: {
+        direction: new Cesium.Cartesian3(0, 1, 0),
+        up: new Cesium.Cartesian3(0, 0, 1)
+      }
+    });
+  }
+
+  function loadNASAImagery(viewer, planet) {
+    try {
+      const provider =
+        new Cesium.WebMapTileServiceImageryProvider({
+          url: planet.url,
+          layer: planet.layer,
+          style: "default",
+          format: "image/jpeg",
+          tileMatrixSetID: "default028mm",
+          tilingScheme: new Cesium.GeographicTilingScheme({
+            ellipsoid: viewer.scene.globe.ellipsoid
+          }),
+          maximumLevel: 8,
+          credit: new Cesium.Credit(
+            "NASA / JPL / LRO / MGS MOLA"
+          ),
+          enablePickFeatures: false
+        });
+
+      viewer.imageryLayers.addImageryProvider(provider);
+
+    } catch (error) {
+      console.error("NASA imagery loading error:", error);
+    }
   }
 
   function getReferenceIds() {
@@ -130,67 +203,101 @@
     return new Set(
       (state.data.results || [])
         .slice(0, 5)
-        .map(result => result.site?.site_id || result.site?.id)
+        .map(result =>
+          result.site?.site_id || result.site?.id
+        )
         .filter(Boolean)
     );
   }
 
-  function renderGlobe() {
-    if (!state.globe) return;
+  function renderMarkers(viewer) {
+    const sites = state.data.allSites || [];
 
-    const sites = getSitesForMode();
+    const referenceIds = getReferenceIds();
+    const topAnalogIds = getTopAnalogIds();
 
-    const points = sites
-      .filter(site =>
-        Number.isFinite(Number(site.latitude)) &&
-        Number.isFinite(Number(site.longitude))
-      )
-      .map(site => ({
-        ...site,
-        latitude: Number(site.latitude),
-        longitude: Number(site.longitude),
-        isReference: getReferenceIds().has(site.site_id || site.id),
-        isTopAnalog:
-          state.mode === "earth" &&
-          getTopAnalogIds().has(site.site_id || site.id)
-      }));
+    const visibleSites = sites.filter(site => {
+      if (state.mode === "earth") {
+        return site.planet === "earth";
+      }
 
-    state.globe
-      .globeImageUrl(textures[state.mode])
-      .pointsData(points);
+      return site.planet === state.mode;
+    });
 
-    if (state.mode === "earth") {
-      state.globe.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 1000);
-    } else {
-      state.globe.pointOfView({ lat: 0, lng: 0, altitude: 1.8 }, 1000);
-    }
+    visibleSites.forEach(site => {
+      const latitude = Number(site.latitude);
+      const longitude = Number(site.longitude);
 
-    state.selectedSite = null;
+      if (!Number.isFinite(latitude) ||
+          !Number.isFinite(longitude)) return;
+
+      const id = site.site_id || site.id;
+
+      const isReference = referenceIds.has(id);
+      const isTopAnalog =
+        state.mode === "earth" && topAnalogIds.has(id);
+
+      let color = Cesium.Color.fromCssColorString("#8295b5");
+
+      if (isReference) {
+        color = Cesium.Color.fromCssColorString("#c084fc");
+      } else if (isTopAnalog) {
+        color = Cesium.Color.fromCssColorString("#39f5ff");
+      }
+
+      viewer.entities.add({
+        name: site.name,
+        position: Cesium.Cartesian3.fromDegrees(
+          longitude,
+          latitude
+        ),
+        point: {
+          pixelSize: isTopAnalog || isReference ? 11 : 7,
+          color,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 1
+        },
+        label: {
+          text: site.name || id,
+          font: "11px sans-serif",
+          fillColor: Cesium.Color.WHITE,
+          show: false,
+          pixelOffset: new Cesium.Cartesian2(0, -18)
+        },
+        siteData: site
+      });
+    });
   }
 
   function showSiteInfo(site) {
-    state.selectedSite = site;
-
-    const panel = getElement("analog-map-info");
+    const panel = $("analog-map-info");
     if (!panel) return;
 
-    const matchingResult = (state.data.results || []).find(result =>
-      (result.site?.site_id || result.site?.id) ===
-      (site.site_id || site.id)
+    const id = site.site_id || site.id;
+
+    const result = (state.data.results || []).find(item =>
+      (item.site?.site_id || item.site?.id) === id
     );
 
-    const score = matchingResult
+    const score = result
       ? `<div class="analog-info-score">
            <span>SIMILARITY SCORE</span>
-           <strong>${Number(matchingResult.score).toFixed(1)}%</strong>
+           <strong>${Number(result.score).toFixed(1)}%</strong>
          </div>`
       : "";
 
     panel.innerHTML = `
       <span class="analog-map-label">LOCATION INTELLIGENCE</span>
       <h3>${escapeHTML(site.name)}</h3>
-      <span class="analog-site-planet">${escapeHTML(site.planet.toUpperCase())}</span>
-      ${site.country ? `<p>${escapeHTML(site.country)}</p>` : ""}
+
+      <span class="analog-site-planet">
+        ${escapeHTML(site.planet.toUpperCase())}
+      </span>
+
+      ${site.country
+        ? `<p>${escapeHTML(site.country)}</p>`
+        : ""}
+
       ${score}
 
       <div class="analog-info-coordinates">
@@ -225,26 +332,24 @@
     `;
   }
 
-  function resizeGlobe() {
-    const element = getElement("analog-globe");
-
-    if (!state.globe || !element) return;
-
-    state.globe.width(element.clientWidth);
-    state.globe.height(element.clientHeight);
-  }
-
-  window.updateAnalogGlobe = function (data) {
+  window.updateAnalogGlobe = function(data) {
     state.data = {
       ...state.data,
       ...data
     };
 
-    if (!state.globe) {
+    if (!state.viewer || state.viewer.isDestroyed()) {
       initializeMap();
     } else {
-      renderGlobe();
+      state.viewer.entities.removeAll();
+      renderMarkers(state.viewer);
     }
   };
+
+  window.addEventListener("resize", () => {
+    if (state.viewer && !state.viewer.isDestroyed()) {
+      state.viewer.resize();
+    }
+  });
 
 })();
