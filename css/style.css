@@ -1963,3 +1963,31 @@ html {
     height: min(480px, calc(100vh - 120px));
   }
 }
+/* =========================================
+   METHODOLOGY — MATHEMATICAL EQUATIONS
+   ========================================= */
+
+.math-equation {
+  margin: 16px 0 20px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.045);
+  color: #eaf6ff;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.math-equation math {
+  display: block;
+  margin: 0 auto;
+  font-size: 1.25em;
+}
+
+.math-equation mi,
+.math-equation mn,
+.math-equation mo,
+.math-equation mtext {
+  color: inherit;
+}
