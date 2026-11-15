@@ -8,6 +8,10 @@
   <meta name="description" content="A team of curious physics minds exploring planetary terrain and discovering Earth's closest analogs to the Moon and Mars.">
   <title>Analog Scout AI | Beyond Earth</title>
   <link rel="stylesheet" href="css/style.css">
+  <link
+  href="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Widgets/widgets.css"
+  rel="stylesheet"
+>
 </head>
 
 <body>
@@ -457,6 +461,12 @@
 
 <!-- 3D Planetary Globe Library -->
 <script src="https://unpkg.com/globe.gl"></script>
+  <script>
+  window.CESIUM_BASE_URL =
+    "https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/";
+</script>
+
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Cesium.js"></script>
 
 <!-- Application files -->
 <script src="js/planetary-map.js"></script>
