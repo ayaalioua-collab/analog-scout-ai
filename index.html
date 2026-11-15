@@ -405,6 +405,26 @@
             Their weights are renormalized so that the active
             weights sum to 1.
           </p>
+                    <div class="math-equation">
+            <math display="block">
+              <msubsup>
+                <mi>w</mi>
+                <mi>i</mi>
+                <mo>*</mo>
+              </msubsup>
+              <mo>=</mo>
+              <mfrac>
+                <msub><mi>w</mi><mi>i</mi></msub>
+                <mrow>
+                  <munderover>
+                    <mo>∑</mo>
+                    <mrow><mi>j</mi><mo>∈</mo><mi>A</mi></mrow>
+                  </munderover>
+                  <msub><mi>w</mi><mi>j</mi></msub>
+                </mrow>
+              </mfrac>
+            </math>
+          </div>
         </li>
 
         <li>
@@ -413,7 +433,35 @@
             The distance is calculated from the normalized
             differences across all shared features.
           </p>
-          <code>D = sqrt(sum(w_i * (x'_i - y'_i)^2))</code>
+          <div class="math-equation">
+  <math display="block">
+    <mi>D</mi>
+    <mo>=</mo>
+    <msqrt>
+      <mrow>
+        <munderover>
+          <mo>∑</mo>
+          <mrow><mi>i</mi><mo>∈</mo><mi>A</mi></mrow>
+        </munderover>
+        <msubsup>
+          <mi>w</mi>
+          <mi>i</mi>
+          <mo>*</mo>
+        </msubsup>
+        <msup>
+          <mrow>
+            <mo>(</mo>
+            <msubsup><mi>x</mi><mi>i</mi><mo>′</mo></msubsup>
+            <mo>−</mo>
+            <msubsup><mi>y</mi><mi>i</mi><mo>′</mo></msubsup>
+            <mo>)</mo>
+          </mrow>
+          <mn>2</mn>
+        </msup>
+      </mrow>
+    </msqrt>
+  </math>
+</div>
         </li>
 
         <li>
@@ -423,11 +471,32 @@
             similarity index. The five highest-scoring Earth
             candidates are presented as the closest analogs.
           </p>
-          <code>S = 100 * exp(-D)</code>
+          <div class="math-equation">
+  <math display="block">
+    <mi>S</mi>
+    <mo>=</mo>
+    <mn>100</mn>
+    <msup>
+      <mi>e</mi>
+      <mrow>
+        <mo>−</mo>
+        <mi>D</mi>
+      </mrow>
+    </msup>
+  </math>
+</div>
           <p>
             Difference is calculated as:
           </p>
-          <code>Difference = 100 - S</code>
+          <div class="math-equation">
+  <math display="block">
+    <mtext>Difference</mtext>
+    <mo>=</mo>
+    <mn>100</mn>
+    <mo>−</mo>
+    <mi>S</mi>
+  </math>
+</div>
         </li>
 
       </ol>
