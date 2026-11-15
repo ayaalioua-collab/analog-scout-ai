@@ -22,6 +22,7 @@
   styles.id = "analog-ai-styles";
 
   styles.textContent = `
+    
     #asa-launcher {
       position: fixed;
       right: 24px;
@@ -29,27 +30,29 @@
       z-index: 99999;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 14px 20px;
-      border: 1px solid rgba(0,229,255,.5);
+      gap: 11px;
+      padding: 14px 21px;
+      border: 1px solid rgba(0,229,255,.4);
       border-radius: 40px;
-      background: linear-gradient(135deg,#10243d,#10152b);
+      background: linear-gradient(135deg,#102c48,#111a32);
       color: #eafaff;
       font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 1px;
+      font-size: 12px;
+      letter-spacing: 1.2px;
       cursor: pointer;
-      box-shadow: 0 8px 35px rgba(0,0,0,.4);
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      transition: .25s ease;
     }
 
     #asa-launcher:hover {
       border-color: #00e5ff;
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 35px rgba(0,229,255,.15);
     }
 
     #asa-launcher .asa-icon {
       color: #00e5ff;
-      font-size: 20px;
+      font-size: 21px;
     }
 
     #asa-panel {
@@ -57,17 +60,17 @@
       right: 24px;
       bottom: 88px;
       z-index: 99999;
-      width: min(390px, calc(100vw - 28px));
-      height: min(570px, calc(100vh - 115px));
+      width: min(410px,calc(100vw - 28px));
+      height: min(610px,calc(100vh - 115px));
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border: 1px solid rgba(0,229,255,.3);
-      border-radius: 17px;
-      background: #091225;
+      border: 1px solid rgba(0,229,255,.24);
+      border-radius: 19px;
+      background: #081323;
       color: #eaf1ff;
-      box-shadow: 0 15px 55px rgba(0,0,0,.55);
-      font-family: Arial, sans-serif;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      font-family: "Segoe UI", Arial, sans-serif;
     }
 
     #asa-panel[hidden] {
@@ -78,79 +81,91 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 17px;
-      background: linear-gradient(120deg,#102a43,#171b38);
-      border-bottom: 1px solid rgba(0,229,255,.2);
+      padding: 17px 19px;
+      background: linear-gradient(120deg,#102c48,#171d3b);
+      border-bottom: 1px solid rgba(0,229,255,.16);
     }
 
     .asa-brand {
       display: flex;
       align-items: center;
-      gap: 11px;
+      gap: 12px;
     }
 
     .asa-brand-icon {
       display: grid;
       place-items: center;
-      width: 37px;
-      height: 37px;
-      border-radius: 11px;
-      background: rgba(0,229,255,.12);
+      width: 39px;
+      height: 39px;
+      border-radius: 12px;
+      background: rgba(0,229,255,.1);
+      border: 1px solid rgba(0,229,255,.18);
       color: #00e5ff;
       font-size: 21px;
     }
 
     .asa-brand-title {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 1.1px;
     }
 
     .asa-brand-status {
       margin-top: 5px;
-      color: #8da5c5;
+      color: #7fa6c8;
       font-size: 10px;
+      letter-spacing: .5px;
     }
 
     #asa-close {
       border: 0;
       background: transparent;
-      color: #aabbd4;
-      font-size: 24px;
+      color: #9db2cb;
+      font-size: 25px;
       cursor: pointer;
+      transition: color .2s;
+    }
+
+    #asa-close:hover {
+      color: #00e5ff;
     }
 
     #asa-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 15px;
+      padding: 19px 15px;
       display: flex;
       flex-direction: column;
-      gap: 13px;
+      gap: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: #244765 transparent;
     }
 
     .asa-message {
-      max-width: 90%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      font-size: 13px;
-      line-height: 1.65;
+      max-width: 94%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.85;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      letter-spacing: .1px;
     }
 
     .asa-message.assistant {
       align-self: flex-start;
-      background: #14243b;
-      border: 1px solid rgba(0,229,255,.12);
-      color: #e0edff;
+      background: linear-gradient(145deg,#142840,#111f34);
+      border: 1px solid rgba(100,180,220,.13);
+      border-top-left-radius: 5px;
+      color: #dce9f8;
     }
 
     .asa-message.user {
       align-self: flex-end;
-      background: #123d56;
-      border: 1px solid rgba(0,229,255,.3);
-      color: #fff;
+      background: linear-gradient(145deg,#10415a,#12344e);
+      border: 1px solid rgba(0,229,255,.2);
+      border-top-right-radius: 5px;
+      color: #f2fbff;
     }
 
     .asa-message.error {
@@ -159,41 +174,45 @@
     }
 
     .asa-typing {
-      color: #00e5ff;
+      color: #00d9f2;
       font-size: 12px;
-      padding: 4px;
+      padding: 5px 8px;
+      letter-spacing: .3px;
     }
 
     .asa-input-area {
-      padding: 12px;
-      border-top: 1px solid rgba(140,170,210,.15);
-      background: #0c172b;
+      padding: 14px;
+      border-top: 1px solid rgba(140,170,210,.13);
+      background: #0b192b;
     }
 
     #asa-form {
       display: flex;
       align-items: flex-end;
-      gap: 8px;
+      gap: 9px;
     }
 
     #asa-question {
       flex: 1;
       min-width: 0;
-      min-height: 43px;
-      max-height: 100px;
+      min-height: 45px;
+      max-height: 110px;
       resize: vertical;
-      padding: 12px;
-      border: 1px solid rgba(130,165,210,.25);
-      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid rgba(130,165,210,.22);
+      border-radius: 12px;
       outline: none;
-      background: #101f36;
-      color: #fff;
+      background: #101f35;
+      color: #f0f7ff;
       font-family: inherit;
       font-size: 13px;
+      line-height: 1.6;
+      transition: border-color .2s;
     }
 
     #asa-question:focus {
       border-color: #00cde8;
+      box-shadow: 0 0 0 3px rgba(0,205,232,.07);
     }
 
     #asa-question::placeholder {
@@ -201,27 +220,35 @@
     }
 
     #asa-send {
-      min-width: 45px;
-      height: 43px;
+      min-width: 46px;
+      height: 45px;
       border: 0;
-      border-radius: 10px;
-      background: #00bcd4;
+      border-radius: 12px;
+      background: linear-gradient(135deg,#00d5e8,#00a9c8);
       color: #06101d;
-      font-size: 19px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
+      transition: .2s;
+    }
+
+    #asa-send:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
     }
 
     #asa-send:disabled {
       opacity: .45;
       cursor: not-allowed;
+      transform: none;
     }
 
     .asa-footer-note {
-      margin-top: 8px;
-      color: #7387a5;
+      margin-top: 10px;
+      color: #7188a5;
       font-size: 10px;
       text-align: center;
+      letter-spacing: .2px;
     }
 
     @media(max-width:480px) {
@@ -233,9 +260,14 @@
       #asa-panel {
         right: 14px;
         bottom: 78px;
-        height: min(570px, calc(100vh - 100px));
+        height: min(610px,calc(100vh - 100px));
+      }
+
+      .asa-message {
+        max-width: 97%;
       }
     }
+
   `;
 
   document.head.appendChild(styles);
