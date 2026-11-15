@@ -7,6 +7,13 @@ let results = [];
 let references = {};
 let earthSites = [];
 let allSites = [];
+const customWeights = {
+  slope: 20,
+  roughness: 20,
+  albedo: 20,
+  thermal: 20,
+  relief: 20
+};
 
 let similarityChart = null;
 let radarChart = null;
