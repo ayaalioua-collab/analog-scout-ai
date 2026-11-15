@@ -1991,3 +1991,49 @@ html {
 .math-equation mtext {
   color: inherit;
 }
+/* CUSTOM WEIGHT CONTROLS */
+
+.w {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  margin: 12px 0;
+}
+
+.w .lbl {
+  margin: 0;
+}
+
+.w input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 5px 0;
+  accent-color: var(--cyan);
+}
+
+.w span {
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(0, 217, 255, .06);
+  color: var(--mute);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .7px;
+}
+
+#weight-total {
+  color: #22c55e;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
