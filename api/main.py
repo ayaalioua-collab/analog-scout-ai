@@ -12,8 +12,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow the deployed Vercel frontend to access the API.
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -25,7 +23,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 PDS_API = "https://pds.nasa.gov/api/search/1/products"
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
@@ -92,16 +89,27 @@ def ai_chat(request: ChatRequest):
     system_prompt = """
 You are the scientific assistant of Analog Scout AI.
 
-Your job is to explain the project's planetary analog analysis.
+Your task is to explain the project's planetary analog analysis.
 
-Rules:
-- Use the supplied project context as your factual source.
+SCIENTIFIC RULES:
+- Use supplied project context as your factual source.
 - Never invent measurements, similarity scores, or NASA findings.
-- Never recalculate the similarity scores.
-- Clearly distinguish known facts from hypotheses and suggestions.
-- If information is missing, say so honestly.
-- Explain scientific concepts in simple, clear language.
+- Never recalculate similarity scores or distances.
+- Distinguish numerical terrain similarity from geological similarity.
+- A feature contribution percentage represents its share
+  of the weighted squared distance, NOT its similarity percentage.
+- A larger contribution means a larger influence on the distance,
+  not necessarily a better match.
+- Never describe two values as nearly identical unless
+  the supplied numbers support that statement.
+- Missing features are excluded from the calculation.
+- A missing feature with 0% contribution does not mean
+  that the feature matches.
+- Clearly distinguish documented facts from hypotheses.
+- If information is unavailable, say so.
+- Explain scientific concepts in clear, concise language.
 - Answer in the same language as the user's question.
+- Give a direct answer before adding explanations.
 """
 
     user_message = f"""
@@ -110,6 +118,8 @@ PROJECT CONTEXT:
 
 USER QUESTION:
 {request.question}
+
+Answer using only the supplied project information.
 """
 
     try:
@@ -122,11 +132,18 @@ USER QUESTION:
             json={
                 "model": "openai/gpt-oss-20b",
                 "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": user_message
+                    }
                 ],
                 "temperature": 0.3,
-                "max_tokens": 700
+                "reasoning_effort": "low",
+                "max_completion_tokens": 1200
             },
             timeout=60
         )
@@ -134,12 +151,61 @@ USER QUESTION:
         response.raise_for_status()
         data = response.json()
 
-        answer = data["choices"][0]["message"]["content"]
+        if not isinstance(data, dict):
+            raise ValueError("Groq returned an invalid response object.")
+
+        choices = data.get("choices") or []
+
+        if not choices:
+            print("Groq response contains no choices.")
+            raise HTTPException(
+                status_code=502,
+                detail="AI provider returned no response choices."
+            )
+
+        choice = choices[0] or {}
+        message = choice.get("message") or {}
+
+        answer = message.get("content")
+        finish_reason = choice.get("finish_reason")
+
+        reasoning = message.get("reasoning")
+        reasoning_length = (
+            len(reasoning) if isinstance(reasoning, str) else 0
+        )
+
+        usage = data.get("usage") or {}
+
+        print(
+            "Groq response:",
+            {
+                "finish_reason": finish_reason,
+                "answer_length": len(answer) if isinstance(answer, str) else 0,
+                "reasoning_length": reasoning_length,
+                "usage": usage
+            }
+        )
+
+        if not isinstance(answer, str) or not answer.strip():
+            print(
+                "Groq returned an empty final answer.",
+                "Finish reason:",
+                finish_reason
+            )
+
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "AI provider returned an empty final answer. "
+                    "Please retry with a shorter question."
+                )
+            )
 
         return {
-            "answer": answer,
+            "answer": answer.strip(),
             "model": data.get("model"),
-            "service": "Groq"
+            "service": "Groq",
+            "finish_reason": finish_reason
         }
 
     except requests.RequestException as error:
@@ -156,8 +222,9 @@ USER QUESTION:
             detail="AI provider request failed. Check server logs."
         )
 
-    except (KeyError, IndexError, ValueError) as error:
+    except (KeyError, IndexError, ValueError, TypeError) as error:
         print(f"Groq response parsing error: {str(error)}")
+
         raise HTTPException(
             status_code=502,
             detail="Invalid AI provider response."
