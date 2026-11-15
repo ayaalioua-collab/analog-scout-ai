@@ -514,10 +514,10 @@ function show(index, reference) {
   ].filter(Boolean);
 
   // Coordinates
-  const coordinates =
-    Number.isFinite(Number(site.lat)) &&
-    Number.isFinite(Number(site.long))
-      ? `${Number(site.lat).toFixed(5)}°, ${Number(site.long).toFixed(5)}°`
+    const coordinates =
+    Number.isFinite(site.latitude) &&
+    Number.isFinite(site.longitude)
+      ? `${site.latitude.toFixed(5)}°, ${site.longitude.toFixed(5)}°`
       : "Coordinates unavailable";
 
   // Scientific information from the original dataset
