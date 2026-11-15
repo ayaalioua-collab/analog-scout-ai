@@ -33,7 +33,7 @@ GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=2, max_length=2000)
-    context: str = Field(default="", max_length=12000)
+    context: str = Field(default="", max_length=30000)
 
 
 @app.get("/")
