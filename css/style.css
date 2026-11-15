@@ -1484,6 +1484,95 @@ html {
     transition-duration: .01ms !important;
   }
 
+/* =========================================
+   ANALOG SCOUT AI — SCIENTIFIC CHARTS
+   ========================================= */
+
+.charts-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  width: 100%;
+  margin: 45px 0;
+}
+
+.chart-card {
+  position: relative;
+  padding: 28px;
+  border: 1px solid rgba(0, 220, 255, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(
+    145deg,
+    rgba(12, 24, 48, 0.92),
+    rgba(20, 15, 48, 0.92)
+  );
+  box-shadow:
+    0 0 25px rgba(0, 220, 255, 0.06),
+    inset 0 0 25px rgba(120, 70, 255, 0.04);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.chart-heading {
+  margin-bottom: 24px;
+}
+
+.chart-heading span {
+  display: block;
+  color: #00e5ff;
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.chart-heading h3 {
+  color: #ffffff;
+  font-size: 21px;
+  margin: 0 0 9px;
+}
+
+.chart-heading p {
+  color: rgba(220, 230, 255, 0.65);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 340px;
+}
+
+.radar-container {
+  height: 390px;
+}
+
+@media (min-width: 900px) {
+  .charts-section {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 600px) {
+  .chart-card {
+    padding: 18px;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+
+  .radar-container {
+    height: 330px;
+  }
+
+  .chart-heading h3 {
+    font-size: 18px;
+  }
+}
+
   .sound-active .sound-icon {
     animation: none;
   }
