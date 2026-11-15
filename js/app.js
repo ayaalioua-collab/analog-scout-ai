@@ -471,6 +471,7 @@ if (candidates.length === 0) {
   updateCharts(reference);
 }
 
+
 function show(index, reference) {
   document.querySelectorAll(".row").forEach(element => {
     element.setAttribute(
@@ -481,8 +482,12 @@ function show(index, reference) {
 
   const result = results[index];
   if (!result) return;
+
   updatePlanetaryMap(reference);
 
+  const site = result.site;
+
+  // Feature comparison table
   const rows = Engine.FEATURES.map(feature => {
     const contribution = result.sq[feature.k] || 0;
 
@@ -494,30 +499,55 @@ function show(index, reference) {
       <tr>
         <td>${feature.label}</td>
         <td>${formatFeature(feature, reference)}</td>
-        <td>${formatFeature(feature, result.site)}</td>
+        <td>${formatFeature(feature, site)}</td>
         <td>${share}%</td>
       </tr>
     `;
   }).join("");
 
+  // Original source annotations
   const notes = [
-    result.site.slope_raw_note,
-    result.site.roughness_raw_note,
-    result.site.local_relief_raw_note,
-    result.site.source_notes
+    site.slope_raw_note,
+    site.roughness_raw_note,
+    site.local_relief_raw_note,
+    site.source_notes
   ].filter(Boolean);
 
-  $("detail").innerHTML =
-    `<h3>${result.site.name}</h3>` +
-    `<p class="note" style="margin:0">
+  // Coordinates
+  const coordinates =
+    Number.isFinite(Number(site.lat)) &&
+    Number.isFinite(Number(site.long))
+      ? `${Number(site.lat).toFixed(5)}°, ${Number(site.long).toFixed(5)}°`
+      : "Coordinates unavailable";
+
+  // Scientific information from the original dataset
+  const geology = site.geology || "Not specified";
+  const regolith = site.regolith || "Not specified";
+  const missionUse = site.mission_use || "Not specified";
+  const limitations = site.environment_limits || "Not specified";
+  const source = site.data_source || "Not specified";
+
+  // Scientific assessment based on documented information
+  const assessment = site.mission_use
+    ? site.mission_use
+    : "The available dataset does not specify a mission application for this site.";
+
+  $("detail").innerHTML = `
+    <h3>${site.name}</h3>
+
+    <p class="note" style="margin:0">
       Similarity: ${result.score.toFixed(1)}% ·
       Difference: ${result.difference.toFixed(1)}% ·
       Distance: ${result.D.toFixed(4)}
-    </p>` +
-    `<p class="note">
+    </p>
+
+    <p class="note">
       Available features: ${result.activeFeatures.length}/5
-    </p>` +
-    `<table>
+    </p>
+
+    <h4>Scientific Comparison</h4>
+
+    <table>
       <thead>
         <tr>
           <th>Feature</th>
@@ -527,12 +557,60 @@ function show(index, reference) {
         </tr>
       </thead>
       <tbody>${rows}</tbody>
-    </table>` +
-    `<p class="why">${Engine.explain(result)}</p>` +
-    (notes.length
-      ? `<p class="note">Source annotations: ${notes.join(" · ")}</p>`
-      : "");
+    </table>
+
+    <h4>Scientific Site Assessment</h4>
+
+    <table>
+      <tbody>
+        <tr>
+          <td><strong>Location</strong></td>
+          <td>${site.country || "Not specified"}</td>
+        </tr>
+        <tr>
+          <td><strong>Coordinates</strong></td>
+          <td>${coordinates}</td>
+        </tr>
+        <tr>
+          <td><strong>Geology</strong></td>
+          <td>${geology}</td>
+        </tr>
+        <tr>
+          <td><strong>Regolith</strong></td>
+          <td>${regolith}</td>
+        </tr>
+        <tr>
+          <td><strong>Potential Mission Use</strong></td>
+          <td>${missionUse}</td>
+        </tr>
+        <tr>
+          <td><strong>Environmental Limitations</strong></td>
+          <td>${limitations}</td>
+        </tr>
+        <tr>
+          <td><strong>Data Source</strong></td>
+          <td>${source}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Scientific Interpretation</h4>
+    <p class="why">${Engine.explain(result)}</p>
+
+    <h4>Potential Scientific Application</h4>
+    <p class="why">${assessment}</p>
+
+    ${
+      notes.length
+        ? `
+          <h4>Data Notes and Annotations</h4>
+          <p class="note">${notes.join(" · ")}</p>
+        `
+        : ""
+    }
+  `;
 }
+
 
 async function init() {
   try {
