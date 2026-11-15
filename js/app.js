@@ -8,6 +8,9 @@ let references = {};
 let earthSites = [];
 let allSites = [];
 
+let similarityChart = null;
+let radarChart = null;
+
 // Convert database values without treating missing values as zero.
 function numericValue(value) {
   if (value === null || value === undefined || value === "") {
@@ -118,6 +121,7 @@ function fillSites() {
     $("list").innerHTML = "";
     $("detail").innerHTML = "";
     results = [];
+    clearCharts();
     return;
   }
 
@@ -132,6 +136,245 @@ function formatFeature(feature, site) {
   }
 
   return `${value}${feature.unit}`;
+}
+
+// Clear previous charts when there are no valid results.
+function clearCharts() {
+  if (similarityChart) {
+    similarityChart.destroy();
+    similarityChart = null;
+  }
+
+  if (radarChart) {
+    radarChart.destroy();
+    radarChart = null;
+  }
+}
+
+// Chart 1: Similarity and difference ranking.
+function updateSimilarityChart() {
+  const canvas = $("similarityChart");
+
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (similarityChart) {
+    similarityChart.destroy();
+  }
+
+  similarityChart = new Chart(canvas, {
+    type: "bar",
+
+    data: {
+      labels: results.map(result => result.site.name),
+
+      datasets: [
+        {
+          label: "Similarity",
+          data: results.map(result => result.score),
+          backgroundColor: "rgba(0, 229, 255, 0.85)",
+          borderColor: "#00e5ff",
+          borderWidth: 1,
+          borderRadius: 5
+        },
+        {
+          label: "Difference",
+          data: results.map(result => result.difference),
+          backgroundColor: "rgba(167, 139, 250, 0.75)",
+          borderColor: "#a78bfa",
+          borderWidth: 1,
+          borderRadius: 5
+        }
+      ]
+    },
+
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+
+      scales: {
+        x: {
+          stacked: true,
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: "Percentage (%)",
+            color: "#aab7d4"
+          },
+          ticks: {
+            color: "#aab7d4"
+          },
+          grid: {
+            color: "rgba(150, 170, 210, 0.12)"
+          }
+        },
+
+        y: {
+          stacked: true,
+          ticks: {
+            color: "#dce8ff"
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+
+      plugins: {
+        legend: {
+          labels: {
+            color: "#dce8ff"
+          }
+        },
+
+        tooltip: {
+          callbacks: {
+            label: context =>
+              `${context.dataset.label}: ${context.parsed.x.toFixed(1)}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+// Chart 2: Radar comparison using the same MinMax scaling
+// used by the scientific similarity engine.
+function updateRadarChart(reference) {
+  const canvas = $("radarChart");
+
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (radarChart) {
+    radarChart.destroy();
+    radarChart = null;
+  }
+
+  const bestAnalog = results[0];
+  if (!bestAnalog) return;
+
+  const ranges = Engine.scaler(allSites);
+
+  function normalizeForChart(value, featureKey) {
+    if (value === null || value === undefined) return null;
+
+    const number = Number(value);
+    if (!Number.isFinite(number)) return null;
+
+    const range = ranges[featureKey];
+    if (!range) return null;
+
+    const span = range.max - range.min;
+    return span === 0 ? 0 : (number - range.min) / span;
+  }
+
+  const featureLabels = Engine.FEATURES.map(
+    feature => feature.label
+  );
+
+  const referenceValues = Engine.FEATURES.map(feature =>
+    normalizeForChart(reference[feature.k], feature.k)
+  );
+
+  const analogValues = Engine.FEATURES.map(feature =>
+    normalizeForChart(bestAnalog.site[feature.k], feature.k)
+  );
+
+  radarChart = new Chart(canvas, {
+    type: "radar",
+
+    data: {
+      labels: featureLabels,
+
+      datasets: [
+        {
+          label: reference.name,
+          data: referenceValues,
+          borderColor: "#00e5ff",
+          backgroundColor: "rgba(0, 229, 255, 0.15)",
+          pointBackgroundColor: "#00e5ff",
+          borderWidth: 2
+        },
+        {
+          label: bestAnalog.site.name,
+          data: analogValues,
+          borderColor: "#a78bfa",
+          backgroundColor: "rgba(167, 139, 250, 0.15)",
+          pointBackgroundColor: "#a78bfa",
+          borderWidth: 2
+        }
+      ]
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      scales: {
+        r: {
+          min: 0,
+          max: 1,
+
+          ticks: {
+            stepSize: 0.2,
+            color: "#aab7d4",
+            backdropColor: "transparent"
+          },
+
+          pointLabels: {
+            color: "#dce8ff",
+            font: {
+              size: 11
+            }
+          },
+
+          grid: {
+            color: "rgba(150, 170, 210, 0.2)"
+          },
+
+          angleLines: {
+            color: "rgba(150, 170, 210, 0.2)"
+          }
+        }
+      },
+
+      plugins: {
+        legend: {
+          labels: {
+            color: "#dce8ff"
+          }
+        },
+
+        tooltip: {
+          callbacks: {
+            label: context => {
+              const value = context.raw;
+
+              return value === null
+                ? `${context.dataset.label}: MISSING`
+                : `${context.dataset.label}: ${value.toFixed(3)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateCharts(reference) {
+  if (typeof Chart === "undefined") {
+    console.error("Chart.js library is not available.");
+    return;
+  }
+
+  if (!results.length) {
+    clearCharts();
+    return;
+  }
+
+  updateSimilarityChart();
+  updateRadarChart(reference);
 }
 
 function run() {
@@ -159,6 +402,7 @@ function run() {
     $("list").innerHTML = "";
     $("detail").innerHTML = "";
     results = [];
+    clearCharts();
     return;
   }
 
@@ -169,6 +413,7 @@ function run() {
     $("ref").textContent = "Insufficient shared numerical features.";
     $("list").innerHTML = "";
     $("detail").innerHTML = "";
+    clearCharts();
     return;
   }
 
@@ -205,6 +450,7 @@ function run() {
   });
 
   show(0, reference);
+  updateCharts(reference);
 }
 
 function show(index, reference) {
@@ -269,7 +515,6 @@ function show(index, reference) {
       : "");
 }
 
-
 async function init() {
   try {
     await loadDatabase();
@@ -281,4 +526,3 @@ async function init() {
 }
 
 init();
-
