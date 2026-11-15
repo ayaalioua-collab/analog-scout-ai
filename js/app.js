@@ -408,16 +408,19 @@ function run() {
     site => site.target_site_id === reference.site_id
   );
 
-  if (candidates.length === 0) {
-    $("ref").textContent =
-      `No Earth analogs are linked to ${reference.name}.`;
+  
+if (candidates.length === 0) {
+  $("ref").textContent =
+    `No Earth analogs are linked to ${reference.name}.`;
 
-    $("list").innerHTML = "";
-    $("detail").innerHTML = "";
-    results = [];
-    clearCharts();
-    return;
-  }
+  $("list").innerHTML = "";
+  $("detail").innerHTML = "";
+  results = [];
+  clearCharts();
+  updatePlanetaryMap(reference);
+  return;
+}
+
 
   // Run the scientific similarity engine on the complete 48-site dataset.
   results = Engine.rank(reference, candidates, allSites);
@@ -428,6 +431,7 @@ function run() {
     $("list").innerHTML = "";
     $("detail").innerHTML = "";
     clearCharts();
+    updatePlanetaryMap(reference);
     return;
   }
 
