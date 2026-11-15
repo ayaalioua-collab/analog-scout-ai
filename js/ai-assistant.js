@@ -1,5 +1,6 @@
 
   const selectedRow = document.querySelector(
+    function getAnalysisContext() {
     '.row[aria-selected="true"]'
   );
 
