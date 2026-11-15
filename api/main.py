@@ -56,11 +56,19 @@ def nasa_search(planet: str = "mars", limit: int = 10):
             "results": response.json()
         }
 
-    except requests.RequestException:
-        raise HTTPException(
-            status_code=502,
-            detail="NASA API request failed."
+   except requests.RequestException as error:
+    if error.response is not None:
+        print(
+            f"Groq API error {error.response.status_code}: "
+            f"{error.response.text[:1000]}"
         )
+    else:
+        print(f"Groq connection error: {str(error)}")
+
+    raise HTTPException(
+        status_code=502,
+        detail="AI provider request failed. Check server logs."
+    )
 
 
 @app.post("/ai-chat")
