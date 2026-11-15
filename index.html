@@ -212,7 +212,6 @@
         <!-- Scientific Charts -->
         <div class="charts-section" id="charts-section">
 
-          <!-- Similarity and Difference Chart -->
           <div class="chart-card">
 
             <div class="chart-heading">
@@ -229,7 +228,6 @@
 
           </div>
 
-          <!-- Radar Chart -->
           <div class="chart-card">
 
             <div class="chart-heading">
@@ -323,7 +321,10 @@
       <div>
         <span class="section-kicker">04 / SCIENTIFIC FRAMEWORK</span>
         <h2>How the <span>system works.</span></h2>
-        <p>A transparent approach to planetary terrain comparison.</p>
+        <p>
+          A transparent, data-driven approach to comparing
+          planetary terrain with Earth's geological environments.
+        </p>
       </div>
 
       <div class="section-index">03</div>
@@ -334,46 +335,90 @@
       <div class="method-intro">
         <span class="section-kicker">SIMILARITY ENGINE</span>
         <h3>From planetary data to Earth analogs.</h3>
+        <p>
+          The system evaluates five numerical terrain properties
+          to identify the closest Earth analogs for each selected
+          lunar or Martian reference site.
+        </p>
       </div>
 
       <ol>
 
         <li>
-          <b>Feature standardization</b>
-          <p>Numeric features are standardized so none dominates the others.</p>
-        </li>
-
-        <li>
-          <b>Weighted distance</b>
+          <b>Feature selection</b>
           <p>
-            We compute a weighted Euclidean distance
-            <code>D = sqrt(sum(w_i (x_i - y_i)^2))</code>
-            between the reference site and each Earth site.
+            Five numerical features are used:
+            slope, surface roughness, albedo, thermal inertia,
+            and local relief. Each feature contributes equally
+            to the comparison.
           </p>
         </li>
 
         <li>
-          <b>Geological comparison</b>
+          <b>Min-Max normalization</b>
           <p>
-            Geology is a category, not a number, so it is compared
-            with a rock-type similarity table.
+            All 48 sites are used to normalize each numerical
+            feature to a common scale between 0 and 1.
+            This prevents differences in measurement units
+            from dominating the analysis.
+          </p>
+          <code>x' = (x - x_min) / (x_max - x_min)</code>
+        </li>
+
+        <li>
+          <b>Equal feature weighting</b>
+          <p>
+            Each of the five features receives an initial weight
+            of 20%. The weighted Euclidean distance measures
+            the numerical difference between the reference
+            site and each Earth candidate.
+          </p>
+          <code>w_i = 0.20</code>
+        </li>
+
+        <li>
+          <b>Missing data handling</b>
+          <p>
+            Missing measurements are not treated as zero.
+            Only features available for both sites are compared.
+            Their weights are renormalized so that the active
+            weights sum to 1.
           </p>
         </li>
 
         <li>
-          <b>Similarity score</b>
+          <b>Weighted Euclidean distance</b>
           <p>
-            Distance becomes a score:
-            <code>S = 100 * exp(-D / tau)</code>.
-            It is a similarity index, not a statistical probability.
+            The distance is calculated from the normalized
+            differences across all shared features.
           </p>
+          <code>D = sqrt(sum(w_i * (x'_i - y'_i)^2))</code>
+        </li>
+
+        <li>
+          <b>Similarity ranking</b>
+          <p>
+            The calculated distance is converted into a
+            similarity index. The five highest-scoring Earth
+            candidates are presented as the closest analogs.
+          </p>
+          <code>S = 100 * exp(-D)</code>
+          <p>
+            Difference is calculated as:
+          </p>
+          <code>Difference = 100 - S</code>
         </li>
 
       </ol>
 
       <p class="note">
-        Terrain similarity does not mean a site is suitable for a landing
-        simulation. Atmosphere, temperature and radiation are not modeled.
+        <b>Scientific interpretation:</b>
+        Similarity scores are comparative indices, not probabilities
+        or measures of landing suitability. The analysis is based
+        on the five selected numerical terrain features.
+        Atmospheric conditions, radiation, temperature and
+        mission-specific engineering constraints are not included
+        in the similarity calculation.
       </p>
 
     </section>
@@ -391,7 +436,7 @@
     </a>
 
     <span>EXPLORING WORLDS THROUGH TERRAIN.</span>
-    <span>HACKATHON PROTOTYPE · ILLUSTRATIVE DATA</span>
+    <span>HACKATHON RESEARCH PROTOTYPE · 48-SITE DATASET</span>
 
   </div>
 </footer>
