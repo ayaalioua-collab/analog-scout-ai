@@ -139,6 +139,7 @@ function getAnalysisContext() {
 
   return {
     project: "Analog Scout AI",
+        completeDataset,
 
     analysisStatus: reference
       ? "Analysis completed"
@@ -169,6 +170,12 @@ function getAnalysisContext() {
     selectedAnalog,
 
     instructions: [
+      "Use completeDataset to answer questions about any of the 48 sites.",
+      "You can compare Earth, Mars, and Moon sites using their supplied records.",
+      "When asked about a site, identify it by its exact name or ID.",
+      "Use only the fields available for that site.",
+      "Never treat missing values as zero.",
+      "Do not confuse documented site information with proposed research applications.",
       "Use only supplied project data.",
       "Never invent measurements, scores, distances, or rankings.",
       "Never recalculate similarity scores.",
