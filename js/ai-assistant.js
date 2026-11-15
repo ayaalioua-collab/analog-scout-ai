@@ -1,39 +1,3 @@
-const completeDataset =
-    typeof allSites !== "undefined"
-      ? allSites.map(site => ({
-          id: site.id,
-          name: site.name,
-          planet: site.planet,
-          country: site.country,
-          targetSiteId: site.target_site_id,
-
-          features: {
-            slope: site.slope,
-            roughness: site.roughness,
-            albedo: site.albedo,
-            thermalInertia: site.thermal,
-            localRelief: site.relief
-          },
-
-          coordinates: {
-            latitude: site.latitude,
-            longitude: site.longitude
-          },
-
-          geology: site.geology,
-          regolith: site.regolith,
-          missionUse: site.mission_use,
-          environmentalLimitations: site.environment_limits,
-          dataSource: site.data_source,
-
-          dataNotes: {
-            slope: site.slope_raw_note,
-            roughness: site.roughness_raw_note,
-            localRelief: site.local_relief_raw_note,
-            source: site.source_notes
-          }
-        }))
-      : [];
 
   const selectedRow = document.querySelector(
     '.row[aria-selected="true"]'
@@ -46,7 +10,7 @@ const completeDataset =
   const currentResults =
     typeof results !== "undefined" ? results : [];
 
-  const topFive = currentResults.map((result, index) => ({
+  const topFive = currentResults.slice(0, 5).map((result, index) => ({
     rank: index + 1,
     name: result.site.name,
     id: result.site.id,
@@ -116,7 +80,6 @@ const completeDataset =
 
   return {
     project: "Analog Scout AI",
-        completeDataset,
 
     analysisStatus: reference
       ? "Analysis completed"
@@ -147,13 +110,11 @@ const completeDataset =
     selectedAnalog,
 
     instructions: [
-      "Use completeDataset to answer questions about any of the 48 sites.",
-      "You can compare Earth, Mars, and Moon sites using their supplied records.",
-      "When asked about a site, identify it by its exact name or ID.",
-      "Use only the fields available for that site.",
+      "Use the supplied reference, top five Earth analogs, and selected analog data.",
+      "Answer using only the information available in the supplied context.",
+      "Identify sites by their exact names or IDs.",
       "Never treat missing values as zero.",
       "Do not confuse documented site information with proposed research applications.",
-      "Use only supplied project data.",
       "Never invent measurements, scores, distances, or rankings.",
       "Never recalculate similarity scores.",
       "Preserve missing values.",
