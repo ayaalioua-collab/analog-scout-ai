@@ -341,11 +341,175 @@
   // 3. Chat message helpers
   // -----------------------------------------
 
+  
+  // Safely format inline Markdown without using innerHTML.
+  function formatInline(text, parent) {
+    const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+    const parts = String(text).split(pattern);
+
+    parts.forEach(part => {
+      if (!part) return;
+
+      if (part.startsWith("**") && part.endsWith("**")) {
+        const strong = document.createElement("strong");
+        strong.textContent = part.slice(2, -2);
+        strong.style.color = "#ffffff";
+        parent.appendChild(strong);
+      } else if (part.startsWith("`") && part.endsWith("`")) {
+        const code = document.createElement("code");
+        code.textContent = part.slice(1, -1);
+        code.style.cssText =
+          "color:#66e5f5;background:#0a192b;padding:2px 5px;border-radius:4px;font-size:.92em;";
+        parent.appendChild(code);
+      } else if (part.startsWith("*") && part.endsWith("*")) {
+        const italic = document.createElement("em");
+        italic.textContent = part.slice(1, -1);
+        parent.appendChild(italic);
+      } else {
+        parent.appendChild(document.createTextNode(part));
+      }
+    });
+  }
+
   function addMessage(text, type = "assistant") {
     const message = document.createElement("div");
 
     message.className = `asa-message ${type}`;
-    message.textContent = String(text);
+
+    const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+
+    let paragraphLines = [];
+    let activeList = null;
+    let inCodeBlock = false;
+    let codeLines = [];
+    let codeLanguage = "";
+
+    function flushParagraph() {
+      if (!paragraphLines.length) return;
+
+      const paragraph = document.createElement("p");
+      paragraph.style.cssText = "margin:0 0 9px;";
+
+      formatInline(paragraphLines.join(" "), paragraph);
+      message.appendChild(paragraph);
+
+      paragraphLines = [];
+    }
+
+    function flushList() {
+      if (!activeList) return;
+      activeList = null;
+    }
+
+    function flushCodeBlock() {
+      const block = document.createElement("div");
+
+      block.style.cssText =
+        "margin:10px 0;padding:12px;overflow-x:auto;border:1px solid rgba(0,229,255,.16);border-radius:9px;background:#091526;color:#8eeaf5;font-family:Consolas,monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;";
+
+      block.textContent = codeLines.join("\n");
+
+      if (codeLanguage === "math") {
+        block.style.textAlign = "center";
+        block.style.fontSize = "13px";
+      }
+
+      message.appendChild(block);
+      codeLines = [];
+      codeLanguage = "";
+    }
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith("```")) {
+        flushParagraph();
+        flushList();
+
+        if (!inCodeBlock) {
+          inCodeBlock = true;
+          codeLanguage = trimmed.slice(3).trim().toLowerCase();
+        } else {
+          inCodeBlock = false;
+          flushCodeBlock();
+        }
+
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeLines.push(line);
+        return;
+      }
+
+      if (!trimmed) {
+        flushParagraph();
+        flushList();
+        return;
+      }
+
+      if (/^[-*_]{3,}$/.test(trimmed)) {
+        flushParagraph();
+        flushList();
+
+        const divider = document.createElement("div");
+        divider.style.cssText =
+          "height:1px;background:rgba(130,180,220,.18);margin:10px 0;";
+        message.appendChild(divider);
+        return;
+      }
+
+      const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+
+      if (heading) {
+        flushParagraph();
+        flushList();
+
+        const title = document.createElement("div");
+        title.style.cssText =
+          "margin:8px 0 5px;color:#55dff1;font-weight:700;font-size:14px;line-height:1.6;";
+
+        formatInline(heading[2], title);
+        message.appendChild(title);
+        return;
+      }
+
+      const bullet = trimmed.match(/^[-*•]\s+(.+)$/);
+      const numbered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+
+      if (bullet || numbered) {
+        flushParagraph();
+
+        const listType = bullet ? "ul" : "ol";
+
+        if (!activeList || activeList.tagName.toLowerCase() !== listType) {
+          flushList();
+
+          activeList = document.createElement(listType);
+          activeList.style.cssText =
+            "margin:5px 0 10px;padding-left:22px;";
+
+          message.appendChild(activeList);
+        }
+
+        const item = document.createElement("li");
+        item.style.cssText = "margin:4px 0;padding-left:3px;";
+
+        formatInline((bullet || numbered)[1], item);
+        activeList.appendChild(item);
+        return;
+      }
+
+      flushList();
+      paragraphLines.push(trimmed);
+    });
+
+    flushParagraph();
+    flushList();
+
+    if (inCodeBlock) {
+      flushCodeBlock();
+    }
 
     messages.appendChild(message);
     messages.scrollTop = messages.scrollHeight;
