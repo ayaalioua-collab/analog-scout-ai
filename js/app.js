@@ -1,5 +1,5 @@
 
-// UI logic + Supabase data loading
+// ANALOG SCOUT AI — Database + Analysis Interface
 
 const $ = id => document.getElementById(id);
 
@@ -7,113 +7,99 @@ let results = [];
 let references = {};
 let earthSites = [];
 let allSites = [];
-let missingSites = [];
 
-function normalizeGeology(value) {
-  const key = String(value || "").toLowerCase().trim();
+// Convert database values without treating missing values as zero.
+function numericValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
 
-  const map = {
-    basalt: "basalt",
-    sedimentary: "sed",
-    sed: "sed",
-    volcanic_ash: "tuff",
-    tuff: "tuff",
-    crystalline: "cryst",
-    cryst: "cryst"
-  };
-
-  return map[key] || key;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
-function hasCompleteFeatures(site) {
-  return (
-    Number.isFinite(site.relief) &&
-    Number.isFinite(site.slope) &&
-    Number.isFinite(site.rough) &&
-    !!GEO_LABELS[site.geo]
-  );
+// Convert a database row into the format used by Engine.
+function mapDatabaseSite(row) {
+  return {
+    id: row.site_id,
+    site_id: row.site_id,
+    name: row.site_name,
+    planet: String(row.planet || "").toLowerCase(),
+    target_site_id: row.target_site_id,
+
+    slope: numericValue(row.slope_deg),
+    roughness: numericValue(row.roughness_rms),
+    albedo: numericValue(row.albedo),
+    thermal: numericValue(row.thermal_inertia),
+    relief: numericValue(row.local_relief_m),
+
+    latitude: numericValue(row.latitude),
+    longitude: numericValue(row.longitude),
+
+    geology: row.geology,
+    regolith: row.regolith,
+    environment_limits: row.environment_limits,
+    mission_use: row.mission_use,
+    data_source: row.data_source,
+
+    slope_raw_note: row.slope_raw_note,
+    roughness_raw_note: row.roughness_raw_note,
+    local_relief_raw_note: row.local_relief_raw_note,
+    source_notes: row.source_notes
+  };
 }
 
 async function loadDatabase() {
-  $("ref").textContent = "Loading data from database...";
+  $("ref").textContent = "Loading scientific dataset...";
   $("list").innerHTML = "";
   $("detail").innerHTML = "";
 
-  const { data: sites, error: sitesError } = await supabaseClient
-    .from("sites")
-    .select("id, name, body");
+  const { data, error } = await supabaseClient
+    .from("analysis_dataset")
+    .select("*");
 
-  if (sitesError) {
-    throw new Error("Could not load sites: " + sitesError.message);
+  if (error) {
+    throw new Error("Could not load analysis dataset: " + error.message);
   }
 
-  const { data: features, error: featuresError } = await supabaseClient
-    .from("terrain_features")
-    .select("site_id, relief_m, mean_slope_deg, roughness, geology, data_status");
-
-  if (featuresError) {
-    throw new Error("Could not load terrain features: " + featuresError.message);
+  if (!data || data.length !== 48) {
+    throw new Error(
+      `Expected 48 sites, but received ${data ? data.length : 0}.`
+    );
   }
 
-  const featureMap = new Map(
-    features.map(feature => [feature.site_id, feature])
+  allSites = data.map(mapDatabaseSite);
+
+  earthSites = allSites.filter(
+    site => site.planet === "earth"
   );
-
-  allSites = sites.map(site => {
-    const feature = featureMap.get(site.id);
-
-    const item = {
-      id: site.id,
-      name: site.name,
-      body: String(site.body || "").toLowerCase(),
-      relief: feature ? feature.relief_m : null,
-      slope: feature ? feature.mean_slope_deg : null,
-      rough: feature ? feature.roughness : null,
-      geo: feature ? normalizeGeology(feature.geology) : null,
-      dataStatus: feature ? feature.data_status : null
-    };
-
-    return item;
-  });
-
-  const completeSites = allSites.filter(hasCompleteFeatures);
 
   references = {
-    mars: completeSites.filter(site => site.body === "mars"),
-    moon: completeSites.filter(site => site.body === "moon")
+    mars: allSites.filter(site => site.planet === "mars"),
+    moon: allSites.filter(site => site.planet === "moon")
   };
 
-  earthSites = completeSites.filter(site => site.body === "earth");
+  console.log("Analog Scout AI dataset loaded.");
+  console.log("Total sites:", allSites.length);
+  console.log("Earth:", earthSites.length);
+  console.log("Mars:", references.mars.length);
+  console.log("Moon:", references.moon.length);
 
-  missingSites = allSites.filter(site => !hasCompleteFeatures(site));
-
-  fillSites();
-}
-
-function init() {
-  $("ws").innerHTML = Engine.FEATURES.map(f =>
-    `<div class="w"><label class="lbl" for="w_${f.k}">${f.label}</label><span id="v_${f.k}">${f.w}</span></div>` +
-    `<input type="range" id="w_${f.k}" min="0" max="100" value="${f.w}">`
+  // Show fixed equal weights: 20% for each feature.
+  $("ws").innerHTML = Engine.FEATURES.map(feature =>
+    `<div class="w">
+       <label class="lbl">${feature.label}</label>
+       <span>20%</span>
+     </div>`
   ).join("");
 
-  Engine.FEATURES.forEach(f =>
-    $("w_" + f.k).addEventListener("input", e => {
-      $("v_" + f.k).textContent = e.target.value;
-    })
-  );
-
-  document.querySelectorAll("input[name=pl]").forEach(r =>
-    r.addEventListener("change", fillSites)
-  );
+  document.querySelectorAll("input[name=pl]").forEach(radio => {
+    radio.addEventListener("change", fillSites);
+  });
 
   $("go").addEventListener("click", run);
 
-  loadDatabase().catch(error => {
-    console.error(error);
-    $("ref").textContent = "Database error: " + error.message;
-    $("list").innerHTML = "";
-    $("detail").innerHTML = "";
-  });
+  fillSites();
 }
 
 function fillSites() {
@@ -128,11 +114,9 @@ function fillSites() {
   ).join("");
 
   if (sites.length === 0) {
-    $("ref").textContent =
-      `No complete terrain data is available for ${planet} yet.`;
+    $("ref").textContent = `No ${planet} reference sites found.`;
     $("list").innerHTML = "";
-    $("detail").innerHTML =
-      `<p>Reference sites for this body are waiting for terrain data.</p>`;
+    $("detail").innerHTML = "";
     results = [];
     return;
   }
@@ -140,25 +124,14 @@ function fillSites() {
   run();
 }
 
-function readWeights() {
-  const raw = {};
-  let sum = 0;
+function formatFeature(feature, site) {
+  const value = site[feature.k];
 
-  Engine.FEATURES.forEach(f => {
-    raw[f.k] = +$("w_" + f.k).value;
-    sum += raw[f.k];
-  });
+  if (value === null || value === undefined) {
+    return "MISSING";
+  }
 
-  Engine.FEATURES.forEach(f => {
-    raw[f.k] = sum ? raw[f.k] / sum : 0.25;
-  });
-
-  return raw;
-}
-
-function fmt(f, obj) {
-  if (f.k === "geo") return GEO_LABELS[obj.geo] || "Unknown";
-  return obj[f.k] + f.unit;
+  return `${value}${feature.unit}`;
 }
 
 function run() {
@@ -167,270 +140,133 @@ function run() {
 
   const planet = selected.value;
   const refs = references[planet] || [];
-  const ref = refs.find(site => site.id === $("site").value);
 
-  if (!ref) return;
+  const reference = refs.find(
+    site => site.id === $("site").value
+  );
 
-  if (earthSites.length === 0) {
-    $("ref").textContent = "No Earth sites have complete terrain data yet.";
+  if (!reference) return;
+
+  // Only use the five Earth sites assigned to this reference.
+  const candidates = earthSites.filter(
+    site => site.target_site_id === reference.site_id
+  );
+
+  if (candidates.length === 0) {
+    $("ref").textContent =
+      `No Earth analogs are linked to ${reference.name}.`;
+
     $("list").innerHTML = "";
     $("detail").innerHTML = "";
     results = [];
     return;
   }
 
-  results = Engine.rank(ref, earthSites, readWeights());
+  // Run the scientific similarity engine on the complete 48-site dataset.
+  results = Engine.rank(reference, candidates, allSites);
+
+  if (results.length === 0) {
+    $("ref").textContent = "Insufficient shared numerical features.";
+    $("list").innerHTML = "";
+    $("detail").innerHTML = "";
+    return;
+  }
 
   $("ref").innerHTML =
-    `<b>${ref.name}</b>: relief ${ref.relief} m, slope ${ref.slope}°, ` +
-    `roughness ${ref.rough}, geology ${GEO_LABELS[ref.geo]} ` +
-    `(${ref.dataStatus || "unknown"} data)`;
+    `<b>${reference.name}</b> · ${reference.planet.toUpperCase()}` +
+    `<br>Earth candidates: ${candidates.length}` +
+    `<br>Five scientific terrain features · Equal weights`;
 
-  $("list").innerHTML = results.map((r, i) =>
-    `<div class="row" role="option" tabindex="0" data-i="${i}" aria-selected="${i === 0}">` +
-    `<span class="rk">${i + 1}</span><div><div class="nm">${r.site.name}</div>` +
-    `<div class="bar"><i style="width:${r.score.toFixed(0)}%"></i></div></div>` +
-    `<span class="sc">${r.score.toFixed(0)}%</span></div>`
+  $("list").innerHTML = results.map((result, index) =>
+    `<div class="row" role="option" tabindex="0"
+      data-i="${index}" aria-selected="${index === 0}">
+      <span class="rk">${index + 1}</span>
+      <div>
+        <div class="nm">${result.site.name}</div>
+        <div class="bar">
+          <i style="width:${result.score}%"></i>
+        </div>
+      </div>
+      <span class="sc">${result.score.toFixed(1)}%</span>
+    </div>`
   ).join("");
 
-  document.querySelectorAll(".row").forEach(el => {
-    const pick = () => show(+el.dataset.i, ref);
+  document.querySelectorAll(".row").forEach(element => {
+    const selectResult = () => show(+element.dataset.i, reference);
 
-    el.addEventListener("click", pick);
+    element.addEventListener("click", selectResult);
 
-    el.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        pick();
+    element.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectResult();
       }
     });
   });
 
-  show(0, ref);
+  show(0, reference);
 }
 
-function show(i, ref) {
-  document.querySelectorAll(".row").forEach(el =>
-    el.setAttribute("aria-selected", +el.dataset.i === i)
-  );
+function show(index, reference) {
+  document.querySelectorAll(".row").forEach(element => {
+    element.setAttribute(
+      "aria-selected",
+      +element.dataset.i === index
+    );
+  });
 
-  const r = results[i];
-  if (!r) return;
+  const result = results[index];
+  if (!result) return;
 
-  const rows = Engine.FEATURES.map(f =>
-    `<tr><td>${f.label}</td><td>${fmt(f, ref)}</td><td>${fmt(f, r.site)}</td>` +
-    `<td><div class="mini"><i style="width:${r.total ? (100 * r.sq[f.k] / r.total).toFixed(0) : 0}%"></i></div></td></tr>`
-  ).join("");
+  const rows = Engine.FEATURES.map(feature => {
+    const contribution = result.sq[feature.k] || 0;
+
+    const share = result.D > 0
+      ? (100 * contribution / (result.D ** 2)).toFixed(1)
+      : "0.0";
+
+    return `
+      <tr>
+        <td>${feature.label}</td>
+        <td>${formatFeature(feature, reference)}</td>
+        <td>${formatFeature(feature, result.site)}</td>
+        <td>${share}%</td>
+      </tr>
+    `;
+  }).join("");
+
+  const notes = [
+    result.site.slope_raw_note,
+    result.site.roughness_raw_note,
+    result.site.local_relief_raw_note,
+    result.site.source_notes
+  ].filter(Boolean);
 
   $("detail").innerHTML =
-    `<h3>${r.site.name}</h3>` +
-    `<p class="note" style="margin:0">Similarity ${r.score.toFixed(1)}, distance ${r.D.toFixed(2)}</p>` +
-    `<p class="note">Earth data status: ${r.site.dataStatus}</p>` +
-    `<table><thead><tr><th>Feature</th><th>Reference</th><th>Earth</th><th>Share of difference</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<p class="why">${Engine.explain(r)}</p>`;
+    `<h3>${result.site.name}</h3>` +
+    `<p class="note" style="margin:0">
+      Similarity: ${result.score.toFixed(1)}% ·
+      Difference: ${result.difference.toFixed(1)}% ·
+      Distance: ${result.D.toFixed(4)}
+    </p>` +
+    `<p class="note">
+      Available features: ${result.activeFeatures.length}/5
+    </p>` +
+    `<table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Reference</th>
+          <th>Earth</th>
+          <th>Distance contribution</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>` +
+    `<p class="why">${Engine.explain(result)}</p>` +
+    (notes.length
+      ? `<p class="note">Source annotations: ${notes.join(" · ")}</p>`
+      : "");
 }
 
 init();
-
-/* =========================================
-   ANALOG SCOUT AI — INTERACTIVE EXPERIENCE
-   ========================================= */
-
-// 1. Optional ambient space sound
-(() => {
-  const button = document.getElementById("sound-toggle");
-  const label = document.getElementById("sound-label");
-
-  if (!button || !label) return;
-
-  let audioContext = null;
-  let masterGain = null;
-  let oscillators = [];
-  let soundEnabled = false;
-
-  function startSound() {
-    const AudioContextClass =
-      window.AudioContext || window.webkitAudioContext;
-
-    if (!AudioContextClass) {
-      label.textContent = "SOUND UNAVAILABLE";
-      return;
-    }
-
-    audioContext = new AudioContextClass();
-
-    masterGain = audioContext.createGain();
-    masterGain.gain.setValueAtTime(0, audioContext.currentTime);
-    masterGain.gain.linearRampToValueAtTime(
-      0.025,
-      audioContext.currentTime + 2
-    );
-
-    masterGain.connect(audioContext.destination);
-
-    const frequencies = [55, 82.41, 110];
-
-    frequencies.forEach((frequency, index) => {
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-
-      oscillator.type = index === 1 ? "sine" : "triangle";
-      oscillator.frequency.value = frequency;
-
-      gain.gain.value = index === 0 ? 0.35 : 0.12;
-
-      oscillator.connect(gain);
-      gain.connect(masterGain);
-
-      oscillator.start();
-      oscillators.push(oscillator);
-    });
-
-    soundEnabled = true;
-    button.setAttribute("aria-pressed", "true");
-    button.setAttribute("aria-label", "Turn space sound off");
-    label.textContent = "SOUND: ON";
-    button.classList.add("sound-active");
-  }
-
-  function stopSound() {
-    if (audioContext && masterGain) {
-      const context = audioContext;
-
-      masterGain.gain.cancelScheduledValues(context.currentTime);
-      masterGain.gain.setTargetAtTime(
-        0,
-        context.currentTime,
-        0.15
-      );
-
-      window.setTimeout(() => {
-        oscillators.forEach(oscillator => {
-          try {
-            oscillator.stop();
-          } catch (error) {}
-        });
-
-        context.close();
-      }, 700);
-    }
-
-    oscillators = [];
-    audioContext = null;
-    masterGain = null;
-    soundEnabled = false;
-
-    button.setAttribute("aria-pressed", "false");
-    button.setAttribute("aria-label", "Turn space sound on");
-    label.textContent = "SOUND: OFF";
-    button.classList.remove("sound-active");
-  }
-
-  button.addEventListener("click", async () => {
-    if (soundEnabled) {
-      stopSound();
-      return;
-    }
-
-    startSound();
-
-    if (audioContext && audioContext.state === "suspended") {
-      await audioContext.resume();
-    }
-  });
-})();
-
-
-// 2. Mouse parallax effect
-(() => {
-  const visual = document.querySelector(".hero-visual");
-
-  if (!visual) return;
-
-  const reducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  const touchDevice = window.matchMedia(
-    "(pointer: coarse)"
-  ).matches;
-
-  if (reducedMotion || touchDevice) return;
-
-  window.addEventListener("pointermove", event => {
-    const x = (event.clientX / window.innerWidth - 0.5) * 2;
-    const y = (event.clientY / window.innerHeight - 0.5) * 2;
-
-    visual.style.setProperty("--mouse-x", `${x * 9}px`);
-    visual.style.setProperty("--mouse-y", `${y * 9}px`);
-    visual.style.transform =
-      `translate3d(${x * 5}px, ${y * 5}px, 0)`;
-  });
-
-  document.addEventListener("mouseleave", () => {
-    visual.style.transform = "";
-    visual.style.setProperty("--mouse-x", "0px");
-    visual.style.setProperty("--mouse-y", "0px");
-  });
-})();
-
-
-// 3. Custom futuristic cursor
-(() => {
-  const finePointer = window.matchMedia(
-    "(hover: hover) and (pointer: fine)"
-  ).matches;
-
-  const reducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  if (!finePointer || reducedMotion) return;
-
-  const dot = document.createElement("div");
-  const ring = document.createElement("div");
-
-  dot.className = "custom-cursor";
-  ring.className = "custom-cursor-ring";
-
-  dot.setAttribute("aria-hidden", "true");
-  ring.setAttribute("aria-hidden", "true");
-
-  document.body.append(dot, ring);
-
-  window.addEventListener("pointermove", event => {
-    const x = event.clientX;
-    const y = event.clientY;
-
-    dot.style.transform =
-      `translate3d(${x - 3.5}px, ${y - 3.5}px, 0)`;
-
-    ring.style.transform =
-      `translate3d(${x - 17}px, ${y - 17}px, 0)`;
-
-    dot.classList.add("is-visible");
-    ring.classList.add("is-visible");
-  });
-
-  document.addEventListener("mouseleave", () => {
-    dot.classList.remove("is-visible");
-    ring.classList.remove("is-visible");
-  });
-
-  document.addEventListener("mouseenter", () => {
-    dot.classList.add("is-visible");
-    ring.classList.add("is-visible");
-  });
-
-  document.addEventListener("pointerover", event => {
-    if (event.target.closest("a, button, input, select, label")) {
-      ring.style.width = "46px";
-      ring.style.height = "46px";
-      ring.style.borderColor = "rgba(150, 115, 255, 0.95)";
-    } else {
-      ring.style.width = "34px";
-      ring.style.height = "34px";
-      ring.style.borderColor = "rgba(114, 239, 255, 0.75)";
-    }
-  });
-})();
