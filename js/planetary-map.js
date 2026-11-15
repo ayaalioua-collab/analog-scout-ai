@@ -14,27 +14,39 @@
     }
   };
 
-  const PLANETS = {
-    earth: {
-      radius: 6378137,
-      polarRadius: 6356752.314245,
-      name: "EARTH"
-    },
-    mars: {
-      radius: 3396190,
-      polarRadius: 3376200,
-      name: "MARS",
-      layer: "Mars_MGS_MOLA_ClrShade_merge_global_463m",
-      url: "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
-    },
-    moon: {
-      radius: 1737400,
-      polarRadius: 1737400,
-      name: "MOON",
-      layer: "LRO_WAC_Mosaic_Global_303ppd_v02",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
-    }
-  };
+  
+const PLANETS = {
+  earth: {
+    radius: 6378137,
+    polarRadius: 6356752.314245,
+    name: "EARTH",
+    layer: "BlueMarble_NextGeneration",
+    tileMatrixSetID: "500m",
+    maximumLevel: 7,
+    url: "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/BlueMarble_NextGeneration/default/default/500m/{TileMatrix}/{TileRow}/{TileCol}.jpeg"
+  },
+
+  mars: {
+    radius: 3396190,
+    polarRadius: 3376200,
+    name: "MARS",
+    layer: "Mars_MGS_MOLA_ClrShade_merge_global_463m",
+    tileMatrixSetID: "default028mm",
+    maximumLevel: 8,
+    url: "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
+  },
+
+  moon: {
+    radius: 1737400,
+    polarRadius: 1737400,
+    name: "MOON",
+    layer: "LRO_WAC_Mosaic_Global_303ppd_v02",
+    tileMatrixSetID: "default028mm",
+    maximumLevel: 8,
+    url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{TileMatrix}/{TileRow}/{TileCol}.jpg"
+  }
+};
+
 
   const $ = id => document.getElementById(id);
 
@@ -140,9 +152,9 @@
     viewer.scene.globe.enableLighting = true;
     viewer.scene.globe.showGroundAtmosphere = false;
 
-    if (state.mode !== "earth") {
-      loadNASAImagery(viewer, planet);
-    }
+    if (planet.url) {
+  loadNASAImagery(viewer, planet);
+}
 
     renderMarkers(viewer);
 
@@ -173,11 +185,11 @@
           layer: planet.layer,
           style: "default",
           format: "image/jpeg",
-          tileMatrixSetID: "default028mm",
+          tileMatrixSetID: planet.tileMatrixSetID,
           tilingScheme: new Cesium.GeographicTilingScheme({
             ellipsoid: viewer.scene.globe.ellipsoid
           }),
-          maximumLevel: 8,
+          maximumLevel: planet.maximumLevel,
           credit: new Cesium.Credit(
             "NASA / JPL / LRO / MGS MOLA"
           ),
