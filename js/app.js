@@ -130,6 +130,17 @@ $("ws").innerHTML = Engine.FEATURES.map(feature =>
    </div>`
 ).join("");
 
+$("ws").querySelectorAll('input[type="range"]').forEach(input => {
+  input.addEventListener("input", () => {
+    const key = input.dataset.feature;
+    const value = Number(input.value);
+
+    customWeights[key] = value;
+
+    $(`value-${key}`).textContent = `${value}%`;
+  });
+});
+  
   document.querySelectorAll("input[name=pl]").forEach(radio => {
     radio.addEventListener("change", fillSites);
   });
