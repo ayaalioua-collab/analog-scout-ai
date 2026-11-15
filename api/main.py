@@ -3,12 +3,25 @@ import os
 import requests
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
     title="Analog Scout AI API",
     description="NASA data discovery and AI assistant",
     version="1.0.0"
+)
+
+# Allow the deployed Vercel frontend to access the API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://analog-scout-owh87h9d0-ayaalioua-5460.vercel.app",
+        "https://analog-scout-ai-nu.vercel.app",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 PDS_API = "https://pds.nasa.gov/api/search/1/products"
@@ -105,7 +118,6 @@ USER QUESTION:
             },
             json={
                 "model": "openai/gpt-oss-20b",
-                
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
