@@ -138,6 +138,13 @@ $("ws").querySelectorAll('input[type="range"]').forEach(input => {
     customWeights[key] = value;
 
     $(`value-${key}`).textContent = `${value}%`;
+    const total = Object.values(customWeights)
+  .reduce((sum, weight) => sum + weight, 0);
+
+$("weight-total").textContent = `${total}%`;
+
+$("weight-total").style.color =
+  total === 100 ? "#22c55e" : "#ef4444";
   });
 });
   
