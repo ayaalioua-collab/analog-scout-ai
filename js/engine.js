@@ -61,7 +61,7 @@ const Engine = (() => {
   }
 
   // Rank Earth analogs against one planetary reference.
-  function rank(reference, earthSites, allSites) {
+  function rank(reference, earthSites, allSites, customWeights = WEIGHTS) {
     const ranges = scaler(allSites);
 
     return earthSites.map(site => {
@@ -92,11 +92,11 @@ const Engine = (() => {
               numericValue(reference[feature.k]) -
               numericValue(site[feature.k])
             ),
-            weight: WEIGHTS[feature.k]
+            weight: customWeights[feature.k]
           };
 
           activeFeatures.push(feature);
-          activeWeightSum += WEIGHTS[feature.k];
+          activeWeightSum += customWeights[feature.k];
         }
       });
 
