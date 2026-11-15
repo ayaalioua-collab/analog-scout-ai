@@ -140,95 +140,73 @@ const Engine = (() => {
     .slice(0, 5);
   }
 
- 
-function explain(result) {
-  if (!result || !result.activeFeatures.length) {
-    return "Insufficient shared numerical features for a scientific comparison.";
-  }
-
-  const labels = Object.fromEntries(
-    FEATURES.map(feature => [feature.k, feature.label])
-  );
-
-  const ranked = [...result.activeFeatures].map(key => {
-    const item = result.featureDetails[key];
-
-    return {
-      key,
-      label: labels[key] || key,
-      contribution: result.sq[key],
-      rawDifference: item.rawDifference,
-      reference: item.reference,
-      earth: item.earth
-    };
-  }).sort((a, b) => a.contribution - b.contribution);
-
-  const closest = ranked[0];
-  const mostDifferent = ranked[ranked.length - 1];
-
-  const strongestMatches = ranked
-    .slice(0, 2)
-    .map(item => item.label);
-
-  const majorDifferences = ranked
-    .slice(-2)
-    .reverse()
-    .map(item => item.label);
-
-  const formatNumber = value =>
-    Number.isFinite(value) ? value.toFixed(3) : "N/A";
-
-  let interpretation =
-    `The Earth site achieves a terrain similarity score of ${result.score.toFixed(1)}% ` +
-    `with the planetary reference site. `;
-
-  interpretation +=
-    `The strongest numerical match is ${closest.label}, ` +
-    `with a normalized distance contribution of ${(closest.contribution * 100).toFixed(1)}%. `;
-
-  interpretation +=
-    `The largest mismatch comes from ${mostDifferent.label}, ` +
-    `contributing ${(mostDifferent.contribution * 100).toFixed(1)}% ` +
-    `of the total weighted distance. `;
-
-  interpretation +=
-    `The two strongest matching features are ${strongestMatches.join(" and ")}, ` +
-    `while the most significant differences involve ${majorDifferences.join(" and ")}. `;
-
-  interpretation +=
-    `${result.activeFeatures.length} out of 5 terrain features were available. `;
-
-  if (result.activeFeatures.length < 5) {
-    interpretation +=
-      `Because some measurements are missing, the active feature weights were renormalized. ` +
-      `This comparison therefore does not represent all five terrain properties. `;
-  }
-
-  interpretation +=
-    `The score measures similarity across the available numerical terrain features only. ` +
-    `It does not establish geological equivalence, environmental safety, ` +
-    `or suitability for a landing site or permanent human settlement.`;
-
-  return interpretation;
-}
-
-
-    const closest = [...result.activeFeatures].sort(
-      (a, b) => result.sq[a] - result.sq[b]
-    );
-
-    const mostDifferent = closest[closest.length - 1];
+  // Generate a scientific interpretation from calculated results.
+  function explain(result) {
+    if (!result || !result.activeFeatures.length) {
+      return "Insufficient shared numerical features for a scientific comparison.";
+    }
 
     const labels = Object.fromEntries(
       FEATURES.map(feature => [feature.k, feature.label])
     );
 
-    return (
-      `This analog has a similarity score of ${result.score.toFixed(1)}%. ` +
-      `Its closest matching feature is ${labels[closest[0]]}. ` +
-      `The largest contribution to the distance comes from ${labels[mostDifferent]}. ` +
-      `${result.activeFeatures.length} of 5 features were available for this comparison.`
-    );
+    const ranked = [...result.activeFeatures].map(key => {
+      const item = result.featureDetails[key];
+
+      return {
+        key,
+        label: labels[key] || key,
+        contribution: result.sq[key],
+        rawDifference: item.rawDifference,
+        reference: item.reference,
+        earth: item.earth
+      };
+    }).sort((a, b) => a.contribution - b.contribution);
+
+    const closest = ranked[0];
+    const mostDifferent = ranked[ranked.length - 1];
+
+    const strongestMatches = ranked
+      .slice(0, 2)
+      .map(item => item.label);
+
+    const majorDifferences = ranked
+      .slice(-2)
+      .reverse()
+      .map(item => item.label);
+
+    let interpretation =
+      `The Earth site achieves a terrain similarity score of ${result.score.toFixed(1)}% ` +
+      `with the planetary reference site. `;
+
+    interpretation +=
+      `The strongest numerical match is ${closest.label}, ` +
+      `with a normalized distance contribution of ${(closest.contribution * 100).toFixed(1)}%. `;
+
+    interpretation +=
+      `The largest mismatch comes from ${mostDifferent.label}, ` +
+      `contributing ${(mostDifferent.contribution * 100).toFixed(1)}% ` +
+      `of the total weighted distance. `;
+
+    interpretation +=
+      `The two strongest matching features are ${strongestMatches.join(" and ")}, ` +
+      `while the most significant differences involve ${majorDifferences.join(" and ")}. `;
+
+    interpretation +=
+      `${result.activeFeatures.length} out of 5 terrain features were available. `;
+
+    if (result.activeFeatures.length < 5) {
+      interpretation +=
+        `Because some measurements are missing, the active feature weights were renormalized. ` +
+        `This comparison does not represent all five terrain properties. `;
+    }
+
+    interpretation +=
+      `The score measures similarity across the available numerical terrain features only. ` +
+      `It does not establish geological equivalence, environmental safety, ` +
+      `or suitability for a landing site or permanent human settlement.`;
+
+    return interpretation;
   }
 
   return {
