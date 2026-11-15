@@ -1,6 +1,6 @@
 
+function getAnalysisContext() {
   const selectedRow = document.querySelector(
-    function getAnalysisContext() {
     '.row[aria-selected="true"]'
   );
 
@@ -35,11 +35,9 @@
       name: site.name,
       id: site.id,
       country: site.country,
-
       similarity: result.score,
       difference: result.difference,
       distance: result.D,
-
       availableFeatures: result.activeFeatures,
 
       featureComparison: features.map(feature => {
@@ -50,10 +48,8 @@
           feature: feature.label,
           key: feature.k,
           unit: feature.unit,
-
           referenceValue: reference[feature.k],
           earthValue: site[feature.k],
-
           rawDifference: detail?.rawDifference ?? null,
 
           normalizedDifference: detail
@@ -74,7 +70,6 @@
       missionUse: site.mission_use,
       environmentalLimitations: site.environment_limits,
       dataSource: site.data_source,
-
       interpretation: Engine.explain(result)
     };
   }
