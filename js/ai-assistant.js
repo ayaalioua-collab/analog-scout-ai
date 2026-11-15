@@ -3,19 +3,90 @@
 
 const AI_API_URL = "https://analog-scout-ai.onrender.com/ai-chat";
 
+
 function getAnalysisContext() {
+  const selected = document.querySelector('input[name="pl"]:checked');
+  const planet = selected?.value || null;
+
+  const refs = planet && typeof references !== "undefined"
+    ? references[planet] || []
+    : [];
+
+  const reference = refs.find(
+    site => site.id === $("site").value
+  ) || null;
+
+  const featureDefinitions =
+    typeof Engine !== "undefined" ? Engine.FEATURES : [];
+
+  const referenceFeatures = reference
+    ? featureDefinitions.map(feature => ({
+        feature: feature.k,
+        value: reference[feature.k]
+      }))
+    : [];
+
+  const topResults = (
+    typeof results !== "undefined" ? results : []
+  ).slice(0, 5).map(result => ({
+    earthSite: {
+      name: result.site?.name,
+      country: result.site?.country,
+      coordinates: {
+        latitude: result.site?.lat,
+        longitude: result.site?.long
+      },
+      geology: result.site?.geology,
+      regolith: result.site?.regolith,
+      missionUse: result.site?.mission_use,
+      environmentalLimits: result.site?.environment_limits,
+      dataSource: result.site?.data_source
+    },
+
+    similarity: result.score,
+    difference: result.difference,
+    distance: result.D,
+    activeFeatures: result.activeFeatures,
+
+    featureComparison: featureDefinitions.map(feature => ({
+      feature: feature.k,
+      referenceValue: reference?.[feature.k],
+      earthValue: result.site?.[feature.k],
+      squaredContribution: result.sq?.[feature.k]
+    })),
+
+    engineExplanation:
+      typeof Engine.explain === "function"
+        ? Engine.explain(result)
+        : null
+  }));
+
   return {
-    selectedPlanet: document.querySelector('input[name="pl"]:checked')?.value || null,
-    selectedReference: document.getElementById("site")?.selectedOptions[0]?.textContent || null,
-    topResults: (typeof results !== "undefined" ? results : []).slice(0, 5).map(item => ({
-      name: item.name,
-      similarity: item.similarity,
-      distance: item.distance,
-      difference: item.difference,
-      features: item.features
-    }))
+    project: "Analog Scout AI",
+    selectedPlanet: planet,
+
+    referenceSite: reference ? {
+      name: reference.name,
+      id: reference.id,
+      planet: reference.planet,
+      features: referenceFeatures
+    } : null,
+
+    topFiveEarthAnalogs: topResults,
+
+    analysisStatus: reference
+      ? "Reference selected. Results reflect the current analysis state."
+      : "No planetary reference selected yet.",
+
+    instructions: [
+      "Use only the supplied analysis data.",
+      "Do not recalculate similarity scores or distances.",
+      "Do not invent missing measurements.",
+      "Distinguish scientific facts from research suggestions."
+    ]
   };
 }
+
 
 function initAIAssistant() {
   if (document.getElementById("ai-assistant")) return;
