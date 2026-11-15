@@ -150,16 +150,22 @@ const Engine = (() => {
       FEATURES.map(feature => [feature.k, feature.label])
     );
 
+    const totalSquaredDistance = Object.values(result.sq)
+      .reduce((sum, value) => sum + value, 0);
+
     const ranked = [...result.activeFeatures].map(key => {
       const item = result.featureDetails[key];
+
+      const contributionPercent = totalSquaredDistance > 0
+        ? (result.sq[key] / totalSquaredDistance) * 100
+        : 0;
 
       return {
         key,
         label: labels[key] || key,
         contribution: result.sq[key],
-        rawDifference: item.rawDifference,
-        reference: item.reference,
-        earth: item.earth
+        contributionPercent,
+        rawDifference: item.rawDifference
       };
     }).sort((a, b) => a.contribution - b.contribution);
 
@@ -179,26 +185,32 @@ const Engine = (() => {
       `The Earth site achieves a terrain similarity score of ${result.score.toFixed(1)}% ` +
       `with the planetary reference site. `;
 
-    interpretation +=
-      `The strongest numerical match is ${closest.label}, ` +
-      `with a normalized distance contribution of ${(closest.contribution * 100).toFixed(1)}%. `;
+    if (totalSquaredDistance > 0) {
+      interpretation +=
+        `The smallest contribution to the distance comes from ${closest.label} ` +
+        `(${closest.contributionPercent.toFixed(1)}%). `;
+
+      interpretation +=
+        `The largest contribution comes from ${mostDifferent.label}, ` +
+        `accounting for ${mostDifferent.contributionPercent.toFixed(1)}% ` +
+        `of the total weighted squared distance. `;
+    } else {
+      interpretation +=
+        `All available numerical features match after normalization, ` +
+        `resulting in zero weighted distance. `;
+    }
 
     interpretation +=
-      `The largest mismatch comes from ${mostDifferent.label}, ` +
-      `contributing ${(mostDifferent.contribution * 100).toFixed(1)}% ` +
-      `of the total weighted distance. `;
-
-    interpretation +=
-      `The two strongest matching features are ${strongestMatches.join(" and ")}, ` +
-      `while the most significant differences involve ${majorDifferences.join(" and ")}. `;
+      `The two smallest distance contributions are associated with ` +
+      `${strongestMatches.join(" and ")}, while the largest differences ` +
+      `are associated with ${majorDifferences.join(" and ")}. `;
 
     interpretation +=
       `${result.activeFeatures.length} out of 5 terrain features were available. `;
 
     if (result.activeFeatures.length < 5) {
       interpretation +=
-        `Because some measurements are missing, the active feature weights were renormalized. ` +
-        `This comparison does not represent all five terrain properties. `;
+        `Missing measurements were excluded and the remaining feature weights were renormalized. `;
     }
 
     interpretation +=
