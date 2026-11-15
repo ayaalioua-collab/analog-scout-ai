@@ -5,7 +5,6 @@ import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-
 app = FastAPI(
     title="Analog Scout AI API",
     description="NASA data discovery and AI assistant",
@@ -56,19 +55,12 @@ def nasa_search(planet: str = "mars", limit: int = 10):
             "results": response.json()
         }
 
-   except requests.RequestException as error:
-    if error.response is not None:
-        print(
-            f"Groq API error {error.response.status_code}: "
-            f"{error.response.text[:1000]}"
+    except requests.RequestException as error:
+        print(f"NASA API error: {str(error)}")
+        raise HTTPException(
+            status_code=502,
+            detail="NASA API request failed."
         )
-    else:
-        print(f"Groq connection error: {str(error)}")
-
-    raise HTTPException(
-        status_code=502,
-        detail="AI provider request failed. Check server logs."
-    )
 
 
 @app.post("/ai-chat")
@@ -121,7 +113,7 @@ USER QUESTION:
                     {"role": "user", "content": user_message}
                 ],
                 "temperature": 0.3,
-                "max_completion_tokens": 700
+                "max_tokens": 700
             },
             timeout=60
         )
@@ -137,13 +129,22 @@ USER QUESTION:
             "service": "Groq"
         }
 
-    except requests.RequestException:
+    except requests.RequestException as error:
+        if error.response is not None:
+            print(
+                f"Groq API error {error.response.status_code}: "
+                f"{error.response.text[:1000]}"
+            )
+        else:
+            print(f"Groq connection error: {str(error)}")
+
         raise HTTPException(
             status_code=502,
-            detail="AI provider request failed."
+            detail="AI provider request failed. Check server logs."
         )
 
-    except (KeyError, IndexError, ValueError):
+    except (KeyError, IndexError, ValueError) as error:
+        print(f"Groq response parsing error: {str(error)}")
         raise HTTPException(
             status_code=502,
             detail="Invalid AI provider response."
