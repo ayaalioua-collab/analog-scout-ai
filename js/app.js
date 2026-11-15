@@ -504,7 +504,7 @@ results = Engine.rank(
   $("ref").innerHTML =
     `<b>${reference.name}</b> · ${reference.planet.toUpperCase()}` +
     `<br>Earth candidates: ${candidates.length}` +
-    `<br>Five scientific terrain features · Equal weights`;
+    `<br>Five scientific terrain features · Custom weights`;
 
   $("list").innerHTML = results.map((result, index) =>
     `<div class="row" role="option" tabindex="0"
