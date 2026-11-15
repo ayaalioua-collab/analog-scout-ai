@@ -5,84 +5,163 @@ const AI_API_URL = "https://analog-scout-ai.onrender.com/ai-chat";
 
 
 function getAnalysisContext() {
-  const selected = document.querySelector('input[name="pl"]:checked');
-  const planet = selected?.value || null;
+  const selectedPlanet =
+    document.querySelector('input[name="pl"]:checked')?.value || null;
 
-  const refs = planet && typeof references !== "undefined"
-    ? references[planet] || []
-    : [];
+  const referenceSites =
+    selectedPlanet && typeof references !== "undefined"
+      ? references[selectedPlanet] || []
+      : [];
 
-  const reference = refs.find(
-    site => site.id === $("site").value
+  const referenceId = $("site")?.value;
+
+  const reference = referenceSites.find(
+    site => site.id === referenceId
   ) || null;
 
-  const featureDefinitions =
+  const features =
     typeof Engine !== "undefined" ? Engine.FEATURES : [];
 
-  const referenceFeatures = reference
-    ? featureDefinitions.map(feature => ({
-        feature: feature.k,
-        value: reference[feature.k]
-      }))
-    : [];
+  // Preserve missing values as null.
+  function siteInformation(site) {
+    if (!site) return null;
 
-  const topResults = (
-    typeof results !== "undefined" ? results : []
-  ).slice(0, 5).map(result => ({
-    earthSite: {
-      name: result.site?.name,
-      country: result.site?.country,
+    return {
+      id: site.id,
+      name: site.name,
+      planet: site.planet,
+      country: site.country,
+
       coordinates: {
-        latitude: result.site?.lat,
-        longitude: result.site?.long
+        latitude: site.latitude,
+        longitude: site.longitude
       },
-      geology: result.site?.geology,
-      regolith: result.site?.regolith,
-      missionUse: result.site?.mission_use,
-      environmentalLimits: result.site?.environment_limits,
-      dataSource: result.site?.data_source
-    },
 
-    similarity: result.score,
+      terrainMeasurements: features.map(feature => ({
+        feature: feature.label,
+        key: feature.k,
+        unit: feature.unit,
+        value: site[feature.k]
+      })),
+
+      geology: site.geology,
+      regolith: site.regolith,
+      missionUse: site.mission_use,
+      environmentalLimitations: site.environment_limits,
+      dataSource: site.data_source,
+
+      sourceNotes: {
+        slope: site.slope_raw_note,
+        roughness: site.roughness_raw_note,
+        localRelief: site.local_relief_raw_note,
+        general: site.source_notes
+      }
+    };
+  }
+
+  // Send the exact calculated results from Engine.rank().
+  const topFive = (
+    typeof results !== "undefined" ? results : []
+  ).map((result, index) => ({
+    rank: index + 1,
+
+    site: siteInformation(result.site),
+
+    similarityScore: result.score,
     difference: result.difference,
-    distance: result.D,
-    activeFeatures: result.activeFeatures,
+    weightedDistance: result.D,
 
-    featureComparison: featureDefinitions.map(feature => ({
-      feature: feature.k,
-      referenceValue: reference?.[feature.k],
-      earthValue: result.site?.[feature.k],
-      squaredContribution: result.sq?.[feature.k]
-    })),
+    availableFeatures: result.activeFeatures,
+    availableFeatureCount: result.activeFeatures.length,
+    activeWeightSum: result.activeWeightSum,
 
-    engineExplanation:
-      typeof Engine.explain === "function"
-        ? Engine.explain(result)
-        : null
+    featureComparison: features.map(feature => {
+      const detail = result.featureDetails[feature.k] || null;
+
+      return {
+        feature: feature.label,
+        key: feature.k,
+        unit: feature.unit,
+
+        referenceRawValue:
+          reference ? reference[feature.k] : null,
+
+        earthRawValue:
+          result.site[feature.k],
+
+        normalizedReference:
+          detail ? detail.reference : null,
+
+        normalizedEarth:
+          detail ? detail.earth : null,
+
+        rawDifference:
+          detail ? detail.rawDifference : null,
+
+        originalWeight:
+          detail ? detail.weight : null,
+
+        activeWeight:
+          detail ? detail.activeWeight : null,
+
+        squaredDistanceContribution:
+          result.sq[feature.k] ?? null
+      };
+    }),
+
+    scientificInterpretation:
+      Engine.explain(result)
   }));
+
+  const selectedRow = document.querySelector(
+    '.row[aria-selected="true"]'
+  );
+
+  const selectedIndex = selectedRow
+    ? Number(selectedRow.dataset.i)
+    : 0;
 
   return {
     project: "Analog Scout AI",
-    selectedPlanet: planet,
-
-    referenceSite: reference ? {
-      name: reference.name,
-      id: reference.id,
-      planet: reference.planet,
-      features: referenceFeatures
-    } : null,
-
-    topFiveEarthAnalogs: topResults,
 
     analysisStatus: reference
-      ? "Reference selected. Results reflect the current analysis state."
-      : "No planetary reference selected yet.",
+      ? "Analysis completed using the scientific similarity engine."
+      : "No planetary reference selected.",
 
-    instructions: [
-      "Use only the supplied analysis data.",
-      "Do not recalculate similarity scores or distances.",
-      "Do not invent missing measurements.",
-      "Distinguish scientific facts from research suggestions."
+    selectedPlanet,
+
+    referenceSite: siteInformation(reference),
+
+    candidateCount:
+      reference && typeof earthSites !== "undefined"
+        ? earthSites.filter(
+            site => site.target_site_id === reference.site_id
+          ).length
+        : 0,
+
+    method: {
+      scaling: "Min-Max normalization",
+      distance: "Weighted Euclidean distance",
+      similarityFormula: "100 * exp(-D)",
+      originalFeatureWeights: "20% each",
+      missingValueHandling:
+        "Missing measurements are excluded and remaining weights are renormalized."
+    },
+
+    selectedAnalog:
+      topFive[selectedIndex] || null,
+
+    topFiveEarthAnalogs: topFive,
+
+    scientificInstructions: [
+      "Use only the supplied dataset and calculated analysis results.",
+      "Never invent site names, measurements, scores, distances, or rankings.",
+      "Never recalculate or modify similarity scores.",
+      "Preserve missing measurements as missing.",
+      "Explain which terrain features contribute to similarity or difference.",
+      "Distinguish documented scientific information from proposed research.",
+      "Do not interpret similarity as probability, geological equivalence, or landing suitability.",
+      "If the requested information is absent, explicitly say it is unavailable in the supplied dataset."
     ]
   };
 }
