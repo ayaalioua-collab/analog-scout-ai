@@ -102,12 +102,33 @@ async function loadDatabase() {
   console.log("Moon:", references.moon.length);
 
   // Show fixed equal weights: 20% for each feature.
-  $("ws").innerHTML = Engine.FEATURES.map(feature =>
-    `<div class="w">
-       <label class="lbl">${feature.label}</label>
-       <span>20%</span>
-     </div>`
-  ).join("");
+const customWeights = {
+  slope: 20,
+  roughness: 20,
+  albedo: 20,
+  thermal: 20,
+  relief: 20
+};
+
+$("ws").innerHTML = Engine.FEATURES.map(feature =>
+  `<div class="w">
+     <label class="lbl" for="weight-${feature.k}">
+       ${feature.label}
+     </label>
+
+     <input
+       type="range"
+       id="weight-${feature.k}"
+       min="0"
+       max="100"
+       step="1"
+       value="20"
+       data-feature="${feature.k}"
+     >
+
+     <span id="value-${feature.k}">20%</span>
+   </div>`
+).join("");
 
   document.querySelectorAll("input[name=pl]").forEach(radio => {
     radio.addEventListener("change", fillSites);
