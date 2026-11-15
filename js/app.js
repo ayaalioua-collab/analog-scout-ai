@@ -27,7 +27,8 @@ function mapDatabaseSite(row) {
     id: row.site_id,
     site_id: row.site_id,
     name: row.site_name,
-    planet: String(row.planet || "").toLowerCase(),
+country: row.country,
+planet: String(row.planet || "").toLowerCase(),
     target_site_id: row.target_site_id,
 
     slope: numericValue(row.slope_deg),
@@ -51,7 +52,17 @@ function mapDatabaseSite(row) {
     source_notes: row.source_notes
   };
 }
-
+// Send database and analysis data to the planetary map.
+function updatePlanetaryMap(reference = null) {
+  if (typeof window.updateAnalogGlobe === "function") {
+    window.updateAnalogGlobe({
+      allSites,
+      references,
+      results,
+      reference
+    });
+  }
+}
 async function loadDatabase() {
   $("ref").textContent = "Loading scientific dataset...";
   $("list").innerHTML = "";
@@ -408,6 +419,7 @@ function run() {
 
   // Run the scientific similarity engine on the complete 48-site dataset.
   results = Engine.rank(reference, candidates, allSites);
+  updatePlanetaryMap(reference);
 
   if (results.length === 0) {
     $("ref").textContent = "Insufficient shared numerical features.";
