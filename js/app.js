@@ -481,6 +481,7 @@ function show(index, reference) {
 
   const result = results[index];
   if (!result) return;
+  updatePlanetaryMap(reference);
 
   const rows = Engine.FEATURES.map(feature => {
     const contribution = result.sq[feature.k] || 0;
