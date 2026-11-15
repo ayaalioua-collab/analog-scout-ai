@@ -269,4 +269,16 @@ function show(index, reference) {
       : "");
 }
 
+
+async function init() {
+  try {
+    await loadDatabase();
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    $("ref").textContent =
+      "Could not initialize the analysis: " + error.message;
+  }
+}
+
 init();
+
