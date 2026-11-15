@@ -1,53 +1,173 @@
-// Similarity engine: weighted Euclidean distance + score.
-// Same logic as python/similarity_engine.py, so you can test either side.
+
+// ANALOG SCOUT AI — Scientific Similarity Engine
+// Method: MinMaxScaler + weighted Euclidean distance
+// Five numerical features, equal weights, pairwise missing-value handling.
 
 const Engine = (() => {
-  const NUMERIC = ["relief", "slope", "rough"];
-  const TAU = 1.5; // larger = scores fall more slowly with distance
-
-  // Features shown in the UI: key, label, unit, default weight (percent)
   const FEATURES = [
-    { k: "relief", label: "Relief",            unit: " m", w: 25 },
-    { k: "slope",  label: "Slope",             unit: "°",  w: 25 },
-    { k: "rough",  label: "Surface roughness", unit: "",   w: 20 },
-    { k: "geo",    label: "Geology",           unit: "",   w: 30 }
+    { k: "slope", label: "Slope", unit: "°", w: 20, db: "slope_deg" },
+    { k: "roughness", label: "Surface Roughness", unit: "", w: 20, db: "roughness_rms" },
+    { k: "albedo", label: "Albedo", unit: "", w: 20, db: "albedo" },
+    { k: "thermal", label: "Thermal Inertia", unit: "", w: 20, db: "thermal_inertia" },
+    { k: "relief", label: "Local Relief", unit: " m", w: 20, db: "local_relief_m" }
   ];
 
-  const geoSim = (a, b) => GEO_SIM[a + "|" + b] ?? GEO_SIM[b + "|" + a] ?? 0;
+  const WEIGHTS = {
+    slope: 0.20,
+    roughness: 0.20,
+    albedo: 0.20,
+    thermal: 0.20,
+    relief: 0.20
+  };
 
+  function numericValue(value) {
+    if (value === null || value === undefined || value === "") {
+      return NaN;
+    }
+
+    const number = Number(value);
+    return Number.isFinite(number) ? number : NaN;
+  }
+
+  // Apply Min-Max scaling to all supplied sites.
+  // Missing values remain missing.
   function scaler(sites) {
-    const mean = {}, sd = {};
-    NUMERIC.forEach(k => {
-      const v = sites.map(s => s[k]);
-      const m = v.reduce((a, b) => a + b, 0) / v.length;
-      mean[k] = m;
-      sd[k] = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length) || 1;
+    const ranges = {};
+
+    FEATURES.forEach(feature => {
+      const values = sites
+        .map(site => numericValue(site[feature.k]))
+        .filter(Number.isFinite);
+
+      const min = values.length ? Math.min(...values) : 0;
+      const max = values.length ? Math.max(...values) : 0;
+
+      ranges[feature.k] = { min, max };
     });
-    return { mean, sd };
+
+    return ranges;
   }
 
-  // weights: { relief, slope, rough, geo } summing to 1
-  function rank(ref, sites, weights) {
-    const { mean, sd } = scaler(sites);
-    return sites.map(site => {
-      const sq = {};
-      NUMERIC.forEach(k => {
-        const diff = (site[k] - mean[k]) / sd[k] - (ref[k] - mean[k]) / sd[k];
-        sq[k] = weights[k] * diff ** 2;
+  function normalize(value, range) {
+    const number = numericValue(value);
+
+    if (!Number.isFinite(number)) return NaN;
+
+    const span = range.max - range.min;
+
+    return span === 0
+      ? 0
+      : (number - range.min) / span;
+  }
+
+  // Rank Earth analogs against one planetary reference.
+  function rank(reference, earthSites, allSites) {
+    const ranges = scaler(allSites);
+
+    return earthSites.map(site => {
+      const differences = {};
+      const activeFeatures = [];
+
+      let activeWeightSum = 0;
+
+      FEATURES.forEach(feature => {
+        const refValue = normalize(
+          reference[feature.k],
+          ranges[feature.k]
+        );
+
+        const earthValue = normalize(
+          site[feature.k],
+          ranges[feature.k]
+        );
+
+        if (
+          Number.isFinite(refValue) &&
+          Number.isFinite(earthValue)
+        ) {
+          differences[feature.k] = {
+            reference: refValue,
+            earth: earthValue,
+            rawDifference: Math.abs(
+              numericValue(reference[feature.k]) -
+              numericValue(site[feature.k])
+            ),
+            weight: WEIGHTS[feature.k]
+          };
+
+          activeFeatures.push(feature);
+          activeWeightSum += WEIGHTS[feature.k];
+        }
       });
-      sq.geo = weights.geo * (1 - geoSim(ref.geo, site.geo)) ** 2;
-      const total = Object.values(sq).reduce((a, b) => a + b, 0);
-      const D = Math.sqrt(total);
-      return { site, sq, total, D, score: 100 * Math.exp(-D / TAU) };
-    }).sort((a, b) => b.score - a.score);
+
+      if (activeWeightSum === 0) {
+        return null;
+      }
+
+      let sum = 0;
+      const sq = {};
+
+      activeFeatures.forEach(feature => {
+        const item = differences[feature.k];
+        const activeWeight = item.weight / activeWeightSum;
+
+        item.activeWeight = activeWeight;
+
+        const delta = item.earth - item.reference;
+        sq[feature.k] = activeWeight * delta ** 2;
+
+        sum += sq[feature.k];
+      });
+
+      const D = Math.sqrt(sum);
+      const similarity = 100 * Math.exp(-D);
+      const score = Math.round(similarity * 10) / 10;
+
+      return {
+        site,
+        sq,
+        D,
+        score,
+        similarity: score,
+        difference: Math.round((100 - score) * 10) / 10,
+        activeFeatures: activeFeatures.map(feature => feature.k),
+        featureDetails: differences,
+        activeWeightSum
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
   }
 
-  // Template explanation. Later you can pass this to an LLM to rephrase it.
   function explain(result) {
-    const ord = FEATURES.map(f => ({ label: f.label.toLowerCase(), v: result.sq[f.k] })).sort((a, b) => a.v - b.v);
-    return `Ranked at ${result.score.toFixed(0)} because it is closest in ${ord[0].label} and ${ord[1].label}, ` +
-           `and differs most in ${ord[3].label}. Atmosphere and temperature are not modeled.`;
+    if (!result || !result.activeFeatures.length) {
+      return "Insufficient shared numerical features for comparison.";
+    }
+
+    const closest = [...result.activeFeatures].sort(
+      (a, b) => result.sq[a] - result.sq[b]
+    );
+
+    const mostDifferent = closest[closest.length - 1];
+
+    const labels = Object.fromEntries(
+      FEATURES.map(feature => [feature.k, feature.label])
+    );
+
+    return (
+      `This analog has a similarity score of ${result.score.toFixed(1)}%. ` +
+      `Its closest matching feature is ${labels[closest[0]]}. ` +
+      `The largest contribution to the distance comes from ${labels[mostDifferent]}. ` +
+      `${result.activeFeatures.length} of 5 features were available for this comparison.`
+    );
   }
 
-  return { FEATURES, rank, explain };
+  return {
+    FEATURES,
+    WEIGHTS,
+    scaler,
+    rank,
+    explain
+  };
 })();
