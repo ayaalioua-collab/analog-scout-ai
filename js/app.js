@@ -453,8 +453,29 @@ function run() {
     return;
   }
 
-  // Run the scientific similarity engine on the complete 48-site dataset.
-  results = Engine.rank(reference, candidates, allSites);
+  // Validate custom feature weights.
+const totalWeight = Object.values(customWeights)
+  .reduce((sum, weight) => sum + Number(weight), 0);
+
+if (totalWeight !== 100) {
+  $("ref").textContent =
+    `The total feature weight must equal 100%. Current total: ${totalWeight}%.`;
+
+  return;
+}
+
+// Run the scientific similarity engine using user-defined weights.
+results = Engine.rank(
+  reference,
+  candidates,
+  allSites,
+  Object.fromEntries(
+    Object.entries(customWeights).map(([key, value]) => [
+      key,
+      value / 100
+    ])
+  )
+);
   updatePlanetaryMap(reference);
 
   if (results.length === 0) {
