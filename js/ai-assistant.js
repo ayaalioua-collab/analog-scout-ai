@@ -3,7 +3,6 @@
 
 const AI_API_URL = "https://analog-scout-ai.onrender.com/ai-chat";
 
-
 function getAnalysisContext() {
   const selectedPlanet =
     document.querySelector('input[name="pl"]:checked')?.value || null;
@@ -22,97 +21,6 @@ function getAnalysisContext() {
   const features =
     typeof Engine !== "undefined" ? Engine.FEATURES : [];
 
-  // Preserve missing values as null.
-  function siteInformation(site) {
-    if (!site) return null;
-
-    return {
-      id: site.id,
-      name: site.name,
-      planet: site.planet,
-      country: site.country,
-
-      coordinates: {
-        latitude: site.latitude,
-        longitude: site.longitude
-      },
-
-      terrainMeasurements: features.map(feature => ({
-        feature: feature.label,
-        key: feature.k,
-        unit: feature.unit,
-        value: site[feature.k]
-      })),
-
-      geology: site.geology,
-      regolith: site.regolith,
-      missionUse: site.mission_use,
-      environmentalLimitations: site.environment_limits,
-      dataSource: site.data_source,
-
-      sourceNotes: {
-        slope: site.slope_raw_note,
-        roughness: site.roughness_raw_note,
-        localRelief: site.local_relief_raw_note,
-        general: site.source_notes
-      }
-    };
-  }
-
-  // Send the exact calculated results from Engine.rank().
-  const topFive = (
-    typeof results !== "undefined" ? results : []
-  ).map((result, index) => ({
-    rank: index + 1,
-
-    site: siteInformation(result.site),
-
-    similarityScore: result.score,
-    difference: result.difference,
-    weightedDistance: result.D,
-
-    availableFeatures: result.activeFeatures,
-    availableFeatureCount: result.activeFeatures.length,
-    activeWeightSum: result.activeWeightSum,
-
-    featureComparison: features.map(feature => {
-      const detail = result.featureDetails[feature.k] || null;
-
-      return {
-        feature: feature.label,
-        key: feature.k,
-        unit: feature.unit,
-
-        referenceRawValue:
-          reference ? reference[feature.k] : null,
-
-        earthRawValue:
-          result.site[feature.k],
-
-        normalizedReference:
-          detail ? detail.reference : null,
-
-        normalizedEarth:
-          detail ? detail.earth : null,
-
-        rawDifference:
-          detail ? detail.rawDifference : null,
-
-        originalWeight:
-          detail ? detail.weight : null,
-
-        activeWeight:
-          detail ? detail.activeWeight : null,
-
-        squaredDistanceContribution:
-          result.sq[feature.k] ?? null
-      };
-    }),
-
-    scientificInterpretation:
-      Engine.explain(result)
-  }));
-
   const selectedRow = document.querySelector(
     '.row[aria-selected="true"]'
   );
@@ -121,51 +29,119 @@ function getAnalysisContext() {
     ? Number(selectedRow.dataset.i)
     : 0;
 
+  const currentResults =
+    typeof results !== "undefined" ? results : [];
+
+  const topFive = currentResults.map((result, index) => ({
+    rank: index + 1,
+    name: result.site.name,
+    id: result.site.id,
+    country: result.site.country,
+    similarity: result.score,
+    difference: result.difference,
+    distance: result.D,
+    availableFeatures: result.activeFeatures
+  }));
+
+  const selectedResult =
+    currentResults[selectedIndex] || currentResults[0] || null;
+
+  let selectedAnalog = null;
+
+  if (selectedResult && reference) {
+    const result = selectedResult;
+    const site = result.site;
+
+    selectedAnalog = {
+      name: site.name,
+      id: site.id,
+      country: site.country,
+
+      similarity: result.score,
+      difference: result.difference,
+      distance: result.D,
+
+      availableFeatures: result.activeFeatures,
+
+      featureComparison: features.map(feature => {
+        const detail = result.featureDetails[feature.k] || null;
+        const contribution = result.sq[feature.k] ?? null;
+
+        return {
+          feature: feature.label,
+          key: feature.k,
+          unit: feature.unit,
+
+          referenceValue: reference[feature.k],
+          earthValue: site[feature.k],
+
+          rawDifference: detail?.rawDifference ?? null,
+
+          normalizedDifference: detail
+            ? Math.abs(detail.earth - detail.reference)
+            : null,
+
+          activeWeight: detail?.activeWeight ?? null,
+
+          contributionPercent:
+            contribution !== null && result.D > 0
+              ? 100 * contribution / (result.D ** 2)
+              : 0
+        };
+      }),
+
+      geology: site.geology,
+      regolith: site.regolith,
+      missionUse: site.mission_use,
+      environmentalLimitations: site.environment_limits,
+      dataSource: site.data_source,
+
+      interpretation: Engine.explain(result)
+    };
+  }
+
   return {
     project: "Analog Scout AI",
 
     analysisStatus: reference
-      ? "Analysis completed using the scientific similarity engine."
-      : "No planetary reference selected.",
+      ? "Analysis completed"
+      : "No reference selected",
 
-    selectedPlanet,
-
-    referenceSite: siteInformation(reference),
-
-    candidateCount:
-      reference && typeof earthSites !== "undefined"
-        ? earthSites.filter(
-            site => site.target_site_id === reference.site_id
-          ).length
-        : 0,
+    reference: reference
+      ? {
+          name: reference.name,
+          planet: reference.planet,
+          features: features.map(feature => ({
+            name: feature.label,
+            value: reference[feature.k],
+            unit: feature.unit
+          }))
+        }
+      : null,
 
     method: {
       scaling: "Min-Max normalization",
       distance: "Weighted Euclidean distance",
       similarityFormula: "100 * exp(-D)",
-      originalFeatureWeights: "20% each",
-      missingValueHandling:
-        "Missing measurements are excluded and remaining weights are renormalized."
+      originalWeights: "20% per feature",
+      missingValues:
+        "Missing measurements excluded; remaining weights renormalized"
     },
 
-    selectedAnalog:
-      topFive[selectedIndex] || null,
-
     topFiveEarthAnalogs: topFive,
+    selectedAnalog,
 
-    scientificInstructions: [
-      "Use only the supplied dataset and calculated analysis results.",
-      "Never invent site names, measurements, scores, distances, or rankings.",
-      "Never recalculate or modify similarity scores.",
-      "Preserve missing measurements as missing.",
-      "Explain which terrain features contribute to similarity or difference.",
-      "Distinguish documented scientific information from proposed research.",
-      "Do not interpret similarity as probability, geological equivalence, or landing suitability.",
-      "If the requested information is absent, explicitly say it is unavailable in the supplied dataset."
+    instructions: [
+      "Use only supplied project data.",
+      "Never invent measurements, scores, distances, or rankings.",
+      "Never recalculate similarity scores.",
+      "Preserve missing values.",
+      "Distinguish numerical terrain similarity from geological similarity.",
+      "Distinguish documented information from research proposals.",
+      "State when requested information is unavailable."
     ]
   };
 }
-
 
 function initAIAssistant() {
   if (document.getElementById("ai-assistant")) return;
@@ -246,6 +222,10 @@ function initAIAssistant() {
     const loading = addMessage("Analyzing your question...", "bot");
 
     try {
+      const context = JSON.stringify(getAnalysisContext());
+
+      console.log("AI context size:", context.length);
+
       const response = await fetch(AI_API_URL, {
         method: "POST",
         headers: {
@@ -253,21 +233,26 @@ function initAIAssistant() {
         },
         body: JSON.stringify({
           question,
-          context: JSON.stringify(getAnalysisContext())
+          context
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "AI service request failed.");
+        throw new Error(
+          typeof data.detail === "string"
+            ? data.detail
+            : JSON.stringify(data.detail || data)
+        );
       }
 
       loading.textContent = data.answer || "No answer was returned.";
 
     } catch (error) {
       loading.textContent =
-        "Sorry, I couldn't connect to the AI service. Please try again.";
+        "AI service error. Please try again shortly.";
+
       console.error("AI Assistant:", error);
 
     } finally {
