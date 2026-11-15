@@ -346,7 +346,156 @@
         </p>
       </div>
 
-      <ol>
+      
+<ol>
+
+  <li>
+    <b>Feature selection</b>
+    <p>
+      Five numerical features are used: slope, surface roughness,
+      albedo, thermal inertia, and local relief. Each feature
+      receives an equal initial contribution to the comparison.
+    </p>
+  </li>
+
+  <li>
+    <b>Min-Max normalization</b>
+    <p>
+      All 48 sites are used to normalize each numerical feature
+      to a common scale between 0 and 1. This prevents differences
+      in measurement units from dominating the analysis.
+    </p>
+    <div class="math-equation">
+      <math display="block">
+        <msubsup><mi>x</mi><mi>i</mi><mo>′</mo></msubsup>
+        <mo>=</mo>
+        <mfrac>
+          <mrow>
+            <msub><mi>x</mi><mi>i</mi></msub>
+            <mo>−</mo>
+            <msub><mi>x</mi><mtext>min</mtext></msub>
+          </mrow>
+          <mrow>
+            <msub><mi>x</mi><mtext>max</mtext></msub>
+            <mo>−</mo>
+            <msub><mi>x</mi><mtext>min</mtext></msub>
+          </mrow>
+        </mfrac>
+      </math>
+    </div>
+  </li>
+
+  <li>
+    <b>Equal feature weighting</b>
+    <p>
+      Each of the five features receives an initial weight of 20%.
+      The weighted Euclidean distance measures the numerical
+      difference between the reference site and each Earth candidate.
+    </p>
+    <div class="math-equation">
+      <math display="block">
+        <msub><mi>w</mi><mi>i</mi></msub>
+        <mo>=</mo>
+        <mfrac><mn>1</mn><mn>5</mn></mfrac>
+        <mo>=</mo>
+        <mn>0.20</mn>
+      </math>
+    </div>
+  </li>
+
+  <li>
+    <b>Missing data handling</b>
+    <p>
+      Missing measurements are not treated as zero.
+      Only features available for both sites are compared.
+      Their weights are renormalized so that the active
+      weights sum to 1. Here, A represents the set of
+      shared available features.
+    </p>
+    <div class="math-equation">
+      <math display="block">
+        <msubsup><mi>w</mi><mi>i</mi><mo>*</mo></msubsup>
+        <mo>=</mo>
+        <mfrac>
+          <msub><mi>w</mi><mi>i</mi></msub>
+          <mrow>
+            <munderover>
+              <mo>∑</mo>
+              <mrow><mi>j</mi><mo>∈</mo><mi>A</mi></mrow>
+            </munderover>
+            <msub><mi>w</mi><mi>j</mi></msub>
+          </mrow>
+        </mfrac>
+      </math>
+    </div>
+  </li>
+
+  <li>
+    <b>Weighted Euclidean distance</b>
+    <p>
+      The distance is calculated from the squared normalized
+      differences across all shared features, using the
+      renormalized weights.
+    </p>
+    <div class="math-equation">
+      <math display="block">
+        <mi>D</mi>
+        <mo>=</mo>
+        <msqrt>
+          <mrow>
+            <munderover>
+              <mo>∑</mo>
+              <mrow><mi>i</mi><mo>∈</mo><mi>A</mi></mrow>
+            </munderover>
+            <msubsup><mi>w</mi><mi>i</mi><mo>*</mo></msubsup>
+            <msup>
+              <mrow>
+                <mo>(</mo>
+                <msubsup><mi>x</mi><mi>i</mi><mo>′</mo></msubsup>
+                <mo>−</mo>
+                <msubsup><mi>y</mi><mi>i</mi><mo>′</mo></msubsup>
+                <mo>)</mo>
+              </mrow>
+              <mn>2</mn>
+            </msup>
+          </mrow>
+        </msqrt>
+      </math>
+    </div>
+  </li>
+
+  <li>
+    <b>Similarity ranking</b>
+    <p>
+      The calculated distance is converted into a similarity
+      index. The five highest-scoring Earth candidates are
+      presented as the closest analogs.
+    </p>
+    <div class="math-equation">
+      <math display="block">
+        <mi>S</mi>
+        <mo>=</mo>
+        <mn>100</mn>
+        <msup>
+          <mi>e</mi>
+          <mrow><mo>−</mo><mi>D</mi></mrow>
+        </msup>
+      </math>
+    </div>
+    <p>Difference is calculated as:</p>
+    <div class="math-equation">
+      <math display="block">
+        <mtext>Difference</mtext>
+        <mo>=</mo>
+        <mn>100</mn>
+        <mo>−</mo>
+        <mi>S</mi>
+      </math>
+    </div>
+  </li>
+
+</ol>
+
 
         <li>
           <b>Feature selection</b>
