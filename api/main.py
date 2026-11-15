@@ -13,16 +13,19 @@ app = FastAPI(
 )
 
 # Allow the deployed Vercel frontend to access the API.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://analog-scout-owh87h9d0-ayaalioua-5460.vercel.app",
         "https://analog-scout-ai-nu.vercel.app",
+        "https://analog-scout-ai.onrender.com",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 PDS_API = "https://pds.nasa.gov/api/search/1/products"
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
