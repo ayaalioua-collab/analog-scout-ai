@@ -20,6 +20,43 @@ function getAnalysisContext() {
 
   const features =
     typeof Engine !== "undefined" ? Engine.FEATURES : [];
+    // Complete scientific dataset: all 48 sites.
+  const completeDataset =
+    typeof allSites !== "undefined"
+      ? allSites.map(site => ({
+          id: site.id,
+          name: site.name,
+          planet: site.planet,
+          country: site.country,
+          targetSiteId: site.target_site_id,
+
+          features: {
+            slope: site.slope,
+            roughness: site.roughness,
+            albedo: site.albedo,
+            thermalInertia: site.thermal,
+            localRelief: site.relief
+          },
+
+          coordinates: {
+            latitude: site.latitude,
+            longitude: site.longitude
+          },
+
+          geology: site.geology,
+          regolith: site.regolith,
+          missionUse: site.mission_use,
+          environmentalLimitations: site.environment_limits,
+          dataSource: site.data_source,
+
+          dataNotes: {
+            slope: site.slope_raw_note,
+            roughness: site.roughness_raw_note,
+            localRelief: site.local_relief_raw_note,
+            source: site.source_notes
+          }
+        }))
+      : [];
 
   const selectedRow = document.querySelector(
     '.row[aria-selected="true"]'
