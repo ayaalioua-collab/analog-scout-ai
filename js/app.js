@@ -127,14 +127,16 @@ function fillSites() {
     `<option value="${site.id}">${site.name}</option>`
   ).join("");
 
-  if (sites.length === 0) {
-    $("ref").textContent = `No ${planet} reference sites found.`;
-    $("list").innerHTML = "";
-    $("detail").innerHTML = "";
-    results = [];
-    clearCharts();
-    return;
-  }
+  
+if (sites.length === 0) {
+  $("ref").textContent = `No ${planet} reference sites found.`;
+  $("list").innerHTML = "";
+  $("detail").innerHTML = "";
+  results = [];
+  clearCharts();
+  updatePlanetaryMap(null);
+  return;
+}
 
   run();
 }
